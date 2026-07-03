@@ -1,0 +1,20 @@
+{
+    "total": 1,
+    "data": {
+        "createBy": null,
+        "createTime": "2026-03-16 13:48:15",
+        "updateBy": null,
+        "updateTime": "2026-03-16 13:48:14",
+        "remark": null,
+        "id": 0,
+        "type": 0,
+        "name": "快速冲煮",
+        "imageUrl": "https://api.dicebear.com/9.x/thumbs/svg?seed=wdic4bqtw2",
+        "sharedToDevice": 0,
+        "sort": 0,
+        "isTop": 0,
+        "configJson": "{\"gear\": 60, \"grind\": true, \"speed\": 75, \"legumes\": 15, \"proportion\": 30, \"accordionItems\": [{\"id\": 1, \"time\": 20, \"type\": 1, \"water\": 37, \"velocity\": 0, \"paragraph\": \"焖蒸\", \"percentage\": \"16\", \"temperature\": 92, \"paragraphAfter\": false, \"paragraphFornt\": false}, {\"id\": 2, \"time\": 12, \"type\": 1, \"water\": 82, \"velocity\": 0, \"paragraph\": \"第1段\", \"percentage\": \"36\", \"temperature\": 92, \"paragraphAfter\": false, \"paragraphFornt\": false}, {\"id\": 3, \"time\": 10, \"type\": 1, \"water\": 62, \"velocity\": 0, \"paragraph\": \"第2段\", \"percentage\": \"28\", \"temperature\": 92, \"paragraphAfter\": false, \"paragraphFornt\": false}, {\"id\": 4, \"time\": 5, \"type\": 0, \"water\": 44, \"velocity\": 0, \"paragraph\": \"第3段\", \"percentage\": \"20\", \"temperature\": 92, \"paragraphAfter\": false, \"paragraphFornt\": false}]}"
+    },
+    "code": 200,
+    "msg": "查询成功"
+}

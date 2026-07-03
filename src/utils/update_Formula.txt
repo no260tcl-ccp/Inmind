@@ -1,0 +1,44 @@
+// 更新当前冲煮配方信息
+    updateFormulaInfo(responseData: string) {
+      const data = this.hexStringToByteArray(responseData)
+      console.log('data:', data.length)
+      console.log('dataTest:', data)
+      // 数据长度检查
+      if (data.length < 35) {
+        console.error('冲煮指令数据长度不足')
+        return
+      }
+      this.formulaData.id = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]
+      this.formulaData.powderWaterRatio = data[4]
+      this.formulaData.beanPowderAmount = data[5]
+      this.formulaData.grindSwitch = data[6]
+      this.formulaData.grindGear = data[7]
+      this.formulaData.grindSpeed = data[8]
+      this.formulaData.brewSegmentCount = data[9]
+      this.formulaData.segment0WaterAmount = data[10]
+      this.formulaData.segment0FlowRate = data[11] / 10
+      this.formulaData.segment0Temperature = data[12]
+      this.formulaData.segment0WaterType = data[13]
+      this.formulaData.segment0ResidenceTime = data[14]
+      this.formulaData.segment1WaterAmount = data[15]
+      this.formulaData.segment1FlowRate = data[16] / 10
+      this.formulaData.segment1Temperature = data[17]
+      this.formulaData.segment1WaterType = data[18]
+      this.formulaData.segment1ResidenceTime = data[19]
+      this.formulaData.segment2WaterAmount = data[20]
+      this.formulaData.segment2FlowRate = data[21] / 10
+      this.formulaData.segment2Temperature = data[22]
+      this.formulaData.segment2WaterType = data[23]
+      this.formulaData.segment2ResidenceTime = data[24]
+      this.formulaData.segment3WaterAmount = data[25]
+      this.formulaData.segment3FlowRate = data[26] / 10
+      this.formulaData.segment3Temperature = data[27]
+      this.formulaData.segment3WaterType = data[28]
+      this.formulaData.segment3ResidenceTime = data[29]
+      this.formulaData.segment4WaterAmount = data[30]
+      this.formulaData.segment4FlowRate = data[31] / 10
+      this.formulaData.segment4Temperature = data[32]
+      this.formulaData.segment4WaterType = data[33]
+      this.formulaData.segment4ResidenceTime = data[34]
+      this.formulaData.name = utf8ArrayToString(data.slice(35, data.length))
+    }

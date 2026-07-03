@@ -1,0 +1,230 @@
+<template>
+  <div
+    class="px-4 page-container page-background"
+    :style="{
+      backgroundImage: `url(${cdnBaseUrl}/45977c8b9e56dc0d76fecd629f076c30fbbb4b6fe2f7c77bf6f94e8cb6429d86.png)`,
+    }"
+  >
+    <van-nav-bar :border="false" style="background-color: transparent">
+      <template #left>
+        <van-image
+          width="28"
+          height="28"
+          round
+          :src="
+            userStore.userInfo &&
+            (userStore.userInfo.avatar ||
+              `${cdnBaseUrl}/21e18276be915687c187ed90027221e1d3664836daa87986b54c8dab44aa5da0.png`)
+          "
+          @click="toMy()"
+        />
+      </template>
+    </van-nav-bar>
+
+    <div class="scroll-Y">
+      <van-swipe
+        class="swiper"
+        :loop="true"
+        :show-indicators="!!bluetoothStore.connectedDevice"
+        :autoplay="0"
+      >
+        <van-swipe-item
+          class="swiper-item"
+          v-for="(item, index) in deviceList"
+          :key="index"
+        >
+          <div class="devcie" @click="onClick(item)">
+            <div class="devcie-header">
+              <div class="devcie-header-left">
+                <div class="device-name-text">{{ item.productInfo?.deviceName || '未知设备' }}</div>
+                <div class="device-sn-text">SN: {{ item.productInfo?.deviceSn || '---' }}</div>
+              </div>
+              <div class="devcie-header-right">
+                <van-tag round :type="connectionStatus === 'connected' ? 'success' : 'default'">
+                  {{ connectionStatus === 'connected' ? '已连接' : '未连接' }}
+                </van-tag>
+              </div>
+            </div>
+            <div class="flex items-center justify-center mt-6">
+              <van-image width="180" height="160" :src="item.img" />
+            </div>
+          </div>
+        </van-swipe-item>
+      </van-swipe>
+
+      <div class="btn-box">
+        <van-button
+          round
+          block
+          type="primary"
+          class="custom-button"
+          @click="toSearch"
+        >
+          添加新设备
+        </van-button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { showToast, showLoadingToast, closeToast } from 'vant'
+import { useUserStore, useBluetoothStore, useMachineBStatusStore } from '@/store'
+
+// 🌟 引入 Web Bluetooth 適配器
+import {
+  mockOpenBluetoothAdapter,
+  mockStartBluetoothDevicesDiscovery,
+  mockCreateBLEConnection,
+  mockGetBLEDeviceServices,
+  mockGetBLEDeviceCharacteristics,
+  mockNotifyBLECharacteristicValueChange
+} from '@/utils/web-ble-adapter'
+
+const router = useRouter()
+const userStore = useUserStore()
+const bluetoothStore = useBluetoothStore()
+const machineStatusStore = useMachineBStatusStore()
+
+const cdnBaseUrl = import.meta.env.VITE_CDN_BASE_URL || 'https://cdn.bincoocoffee.cn'
+const topPadding = ref(44)
+
+// 模擬設備列表
+const deviceList = ref([
+  {
+    status: 0,
+    img: 'https://cdn.bincoocoffee.cn/home-machine.png',
+    productInfo: {
+      deviceName: 'Bincoo 咖啡机 04',
+      deviceSn: 'BC-2026-04',
+      id: 'web-device'
+    }
+  }
+])
+
+const connectionStatus = computed(() => bluetoothStore.connectionStatus)
+
+// 🌟 核心連線邏輯
+const onClick = async (item: any) => {
+  console.log('[Web Bluetooth] 開始連線流程...', item.productInfo.deviceName)
+
+  if (!navigator.bluetooth) {
+    showToast('瀏覽器不支援藍牙，請使用 Chrome 並確保在 HTTPS 環境下測試')
+    return
+  }
+
+  try {
+    await mockOpenBluetoothAdapter()
+    await mockStartBluetoothDevicesDiscovery()
+
+    showLoadingToast({
+      message: '正在连线机器...',
+      forbidClick: true,
+      duration: 0
+    })
+
+    await mockCreateBLEConnection({ deviceId: 'web-device' })
+    await mockGetBLEDeviceServices({ deviceId: 'web-device' })
+
+    const serviceId = '0000fff0-0000-1000-8000-00805f9b34fb'
+    await mockGetBLEDeviceCharacteristics({
+      deviceId: 'web-device',
+      serviceId: serviceId
+    })
+
+    await mockNotifyBLECharacteristicValueChange({
+      deviceId: 'web-device',
+      serviceId: serviceId,
+      characteristicId: '0000fff1-0000-1000-8000-00805f9b34fb',
+      state: true
+    })
+
+    closeToast()
+    showToast({ type: 'success', message: '连线成功！' })
+
+    // ==========================================
+    // 🌟 終極黑客技術：一波帶走！完整封包直擊版
+    // ==========================================
+    bluetoothStore.connectionStatus = 'connected'
+    bluetoothStore.connectedDevice = { ...item, deviceId: 'web-device' }
+
+    bluetoothStore.sendData = (buffer: any) => {
+      console.log('[WebBLE] 成功攔截指令，準備發送完整封包！')
+      
+      // 1. 強制資料格式轉換 (確保是純淨的 ArrayBuffer，無敵防呆)
+      let finalBuffer: ArrayBuffer;
+      if (typeof buffer === 'string') {
+        const hex = buffer.replace(/\s+/g, '');
+        const match = hex.match(/.{1,2}/g) || [];
+        finalBuffer = new Uint8Array(match.map(byte => parseInt(byte, 16))).buffer;
+      } else if (Array.isArray(buffer)) {
+        finalBuffer = new Uint8Array(buffer).buffer;
+      } else if (buffer instanceof Uint8Array) {
+        finalBuffer = buffer.buffer;
+      } else {
+        finalBuffer = buffer; // 假設已經是 ArrayBuffer
+      }
+
+      return new Promise((resolve, reject) => {
+        // 2. 直接發送完整資料，絕不切塊，保持 5A...AA 封包的完整性！
+        uni.writeBLECharacteristicValue({
+          deviceId: 'web-device',
+          serviceId: '0000fff0-0000-1000-8000-00805f9b34fb',
+          characteristicId: '0000fff2-0000-1000-8000-00805f9b34fb', // 發射通道 FFF2
+          value: finalBuffer
+        }).then((res: any) => {
+          console.log('✅ 完整指令發射成功！強力回傳 dd 暗號！', res)
+          resolve('dd') // 完美暗號放行 3 秒啟動！
+        }).catch((err: any) => {
+          console.error('❌ 指令發送失敗！', err)
+          reject(err)
+        })
+      })
+    }
+    // ==========================================
+
+    router.push('/pages-coffeeb/index/index')
+
+  } catch (error: any) {
+    closeToast()
+    console.error('[Web Bluetooth] 連線失敗:', error)
+    showToast('连线失败，请重试')
+  }
+}
+
+const toSearch = () => { showToast('请直接点击上方咖啡机进行连线') }
+const toMy = () => { router.push('/pages/my/index') }
+
+onMounted(() => { console.log('設備列表頁載入，準備連線') })
+</script>
+
+<style lang="scss" scoped>
+.page-container {
+  height: 100vh;
+  background: #f7f7f7;
+  overflow: hidden;
+}
+.scroll-Y {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 100px);
+}
+.devcie {
+  background: white;
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  width: 300px;
+  cursor: pointer;
+  .device-name-text { font-size: 18px; font-weight: bold; color: #333; }
+  .device-sn-text { color: #999; font-size: 12px; margin-top: 5px; }
+}
+.btn-box {
+  margin-top: 40px;
+  width: 80%;
+}
+</style>

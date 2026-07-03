@@ -1,0 +1,575 @@
+<template>
+  <div v-if="step === 1">
+    <div style="height: 100vh; background-color: white">
+      <van-nav-bar
+        fixed
+        placeholder
+        :border="false"
+        :title="formulaTitle"
+        left-arrow
+        @click-left="handleBack"
+      >
+        <template #left>
+          <i class="iconfont icon-a-ze-arrow-leftCopy2 icon-size-22"></i>
+        </template>
+      </van-nav-bar>
+
+      <div class="scroll-Y" style="overflow-y: auto;">
+        <div class="mr-3 ml-3 mt-3">
+          <div>
+            <horizontal-slidert
+              ref="coffeeBeansSlider"
+              :initialValue="legumes"
+              sliderText="咖啡粉"
+              @slider-change="handleSliderChangeCoffeeBeans"
+              :maxSliderValue="20"
+              :minSliderValue="5"
+              unitValue="g"
+              :stepSize="1"
+              :showValue="true"
+            />
+          </div>
+          <div class="mt-3">
+            <horizontal-slidert
+              ref="proportionSlider"
+              :initialValue="proportion"
+              sliderText="粉水比"
+              @slider-change="handleSliderChangeProportion"
+              :maxSliderValue="40"
+              :minSliderValue="10"
+              :proportion="true"
+              :unitValue="`${totalWaterVolume}ml`"
+              :stepSize="2"
+              :showValue="true"
+              :numberSize="20"
+            />
+          </div>
+          <div class="mt-3">
+            <div class="switch-box">
+              <div>
+                <span>研磨：{{ grind ? 'on' : 'off' }}</span>
+              </div>
+              <div>
+                <van-switch v-model="grind" size="22px" inactive-color="#d3e1f1" />
+              </div>
+            </div>
+          </div>
+          <div v-if="grind">
+            <div class="mt-3">
+              <horizontal-slidert
+                ref="gearSlider"
+                :initialValue="gear"
+                sliderText="档位"
+                @slider-change="handleSliderChangeGear"
+                :maxSliderValue="120"
+                :minSliderValue="1"
+                :unitValue="dangweiType"
+                :stepSize="1"
+                :showValue="true"
+              />
+            </div>
+            <div class="mt-3">
+              <horizontal-slidert
+                ref="speedSlider"
+                :initialValue="speed"
+                sliderText="研磨转速"
+                @slider-change="handleSliderChangeSpeed"
+                :maxSliderValue="120"
+                :minSliderValue="60"
+                unitValue="RPM"
+                :stepSize="5"
+                :showValue="true"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer fixed bottom-5 left-0 right-0 px-5 bg-white py-2">
+        <van-row gutter="12">
+          <van-col span="7">
+            <van-button block type="primary" plain round @click="resetParams">重置</van-button>
+          </van-col>
+          <van-col span="10">
+            <van-button block type="primary" round @click="startQuick">开始</van-button>
+          </van-col>
+          <van-col span="7">
+            <van-button block type="primary" plain round @click="step = 2">注水设置</van-button>
+          </van-col>
+        </van-row>
+      </div>
+    </div>
+  </div>
+
+  <div v-else>
+    <div style="height: 100vh; background-color: white">
+      <van-nav-bar
+        fixed
+        placeholder
+        :border="false"
+        :title="formulaTitle"
+        left-arrow
+        @click-left="handleBack"
+      >
+        <template #left>
+          <i class="iconfont icon-a-ze-arrow-leftCopy2 icon-size-22"></i>
+        </template>
+      </van-nav-bar>
+
+      <div class="mr-4 ml-4 mt-4">
+        <div class="flex justify-between items-center">
+          <div>
+            <div class="font-size-6">注水</div>
+            <div class="flex font-size-3.5 mt-2 items-center">
+              <div>{{ nowWater + '/' + totalWaterVolume + 'ml' }}</div>
+              <div class="ml-2 mr-2 divider"></div>
+              <div>
+                待分配：
+                <span :class="{ 'over-color': totalWaterVolume - nowWater < 0 }">
+                  {{ negativeCorrection + 'ml' }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div v-if="activeIndex !== -1">
+            <van-button type="primary" size="small" round @click="autoWater">自动分配</van-button>
+          </div>
+        </div>
+      </div>
+
+      <div class="scroll-Y item-list" style="overflow-y: auto;">
+        <div class="mr-3 ml-3 mt-4">
+          <div v-if="accordionItems.length > 0">
+            <AccordionItem
+              :items="accordionItems"
+              @updateWater="handleUpdateWater"
+              @updateTemperature="handleUpdateTemperature"
+              @updateVelocity="handleUpdateVelocity"
+              @updateTime="handleUpdateTime"
+              @updateTotalWater="handleUpdateTotalWater"
+              @updateActiveIndex="handleActiveIndexUpdate"
+              @updateWaterInjectType="handleUpdateWaterInjectType"
+            />
+          </div>
+          <van-empty v-else description="请添加分段注水" />
+        </div>
+      </div>
+
+      <div class="footer fixed bottom-5 left-0 right-0 px-5 bg-white py-2">
+        <van-row gutter="12">
+          <van-col span="12">
+            <van-button block type="primary" plain round @click="step = 1">
+              <i class="iconfont icon-a-svg10 mr-1"></i> 返回
+            </van-button>
+          </van-col>
+          <van-col span="12">
+            <van-button block type="primary" round @click="addFormula">
+              <van-icon name="plus" class="mr-1" /> 新增
+            </van-button>
+          </van-col>
+        </van-row>
+      </div>
+    </div>
+  </div>
+
+  <van-popup v-model:show="quickShow" position="center" style="width: 100%; background: transparent;">
+    <HighSpeed @close="handleClose" @start="handleStart" />
+  </van-popup>
+
+  <van-action-sheet
+    v-model:show="sheetShow"
+    :actions="[{ name: '开始冲煮', value: 'brew' }]"
+    cancel-text="取消"
+    close-on-click-action
+    @select="onSheetSelect"
+  />
+</template>
+
+<script setup lang="ts">
+//import { hexToString, utf8ArrayToString } from '@/utils'
+import { utf8ArrayToString } from '@/utils'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { showToast, showLoadingToast, closeToast } from 'vant'
+import { useUserStore, useBluetoothStore, useMachineBStatusStore } from '@/store'
+import { retry, stringToGB2312 } from '@/utils'
+import { CoffeeMachineProtocol } from '@/utils/coffeebBlueTool'
+import AccordionItem from '../components/accordion-item/accordion-item.vue'
+import HighSpeed from './components/high-speed/high-speed.vue'
+import HorizontalSlidert from '@/components/horizontal-slidert/horizontal-slidert.vue'
+import { httpGet, httpPut } from '@/utils/http'
+import defaultRecipeJson from './default.json'
+import { useRequest } from '@/hooks/useRequest'
+
+const router = useRouter()
+const coffeeMachineProtocol = CoffeeMachineProtocol.getInstance()
+const machineStatusStore = useMachineBStatusStore()
+const bluetoothStore = useBluetoothStore()
+const userStore = useUserStore()
+
+const runStatus = ref(machineStatusStore.runStatus)
+watch(() => machineStatusStore.runStatus, (newStatus) => { runStatus.value = newStatus }, { immediate: true })
+
+const step = ref<number>(1)
+const sheetShow = ref<boolean>(false)
+const sheetData = ref({})
+const name = ref('') 
+const grind = ref<boolean>(true)
+const legumes = ref<number>(15)
+const proportion = ref<number>(30)
+const totalWaterVolume = ref<number>(225)
+const gear = ref<number>(60)
+const speed = ref<number>(120)
+const nowWater = ref<number>(0)
+const activeIndex = ref<number>(-1)
+const accordionItems = ref<any[]>([])
+const isEdit = ref(false)
+const id = ref<number>(0)
+const deviceId = ref<any>(null)
+const sharedToDevice = ref<number>(0)
+const requestParams = ref<any>()
+const originalFormula = ref<any>()
+const quickShow = ref<boolean>(false)
+
+const handleBack = () => { router.back() }
+const formulaTitle = computed(() => '快速冲煮')
+
+const addFormula = () => {
+  if (accordionItems.value.length > 4) {
+    showToast({ type: 'fail', message: '您最多可以添加5条数据' })
+    return
+  }
+  accordionItems.value.push({
+    id: accordionItems.value.length + 1,
+    paragraph: accordionItems.value.length === 0 ? '焖蒸' : `第${accordionItems.value.length}段`,
+    percentage: 0, water: 0, temperature: 93, velocity: 3, time: 3, type: 0, paragraphFornt: false, paragraphAfter: false,
+  })
+}
+
+onMounted(() => {
+  getThecipeForQuickCooking()
+  if (bluetoothStore.connectionStatus === 'connected') {
+    deviceId.value = bluetoothStore.connectedDevice?.productInfo?.id
+  } else {
+    // 開發測試期可以先不用報錯擋住
+    // showToast({ type: 'fail', message: '蓝牙未连接' })
+  }
+})
+
+const handleUpdateWater = ({ index, newValue }: any) => {
+  accordionItems.value[index].water = newValue
+  accordionItems.value.forEach((item) => {
+    item.percentage = ((item.water / totalWaterVolume.value) * 100).toFixed(0)
+  })
+}
+
+const autoWater = () => {
+  if (activeIndex.value < 0 || activeIndex.value >= accordionItems.value.length) {
+    showToast({ type: 'fail', message: '无效的配方段落索引' })
+    return
+  }
+  const remainingWater = totalWaterVolume.value - nowWater.value
+  const maxWater = Math.min(remainingWater, 240) 
+  const currentWater = accordionItems.value[activeIndex.value].water
+  const newWater = Math.min(currentWater + maxWater, totalWaterVolume.value) 
+  
+  accordionItems.value[activeIndex.value].water = newWater 
+  accordionItems.value[activeIndex.value].percentage = Math.round((newWater / totalWaterVolume.value) * 100)
+  nowWater.value += newWater - currentWater
+
+  if (maxWater <= 0) {
+    showToast({ type: 'fail', message: '没有可分配的水量' })
+    negativeCorrection.value = 0
+  }
+}
+
+const handleUpdateTemperature = ({ index, newValue }: any) => { accordionItems.value[index].temperature = newValue }
+const handleUpdateVelocity = ({ index, newValue }: any) => { accordionItems.value[index].velocity = newValue }
+const handleUpdateTime = ({ index, newValue }: any) => { accordionItems.value[index].time = newValue }
+const handleUpdateTotalWater = (newValue: any) => { nowWater.value = newValue }
+const handleSliderChangeSpeed = (value: number) => { speed.value = value }
+const handleActiveIndexUpdate = (index: number) => { activeIndex.value = index }
+const handleUpdateWaterInjectType = ({ index, type }: any) => { accordionItems.value[index].type = type }
+
+const negativeCorrection = ref<number>(0)
+watch([totalWaterVolume, nowWater], ([newTotal, newNow]) => {
+  negativeCorrection.value = newTotal - newNow
+})
+
+const resetParams = () => {
+  const result = defaultRecipeJson.data
+  const configJson = JSON.parse(result.configJson)
+  name.value = result.name
+  id.value = result.id
+  sheetData.value = result
+  accordionItems.value = configJson.accordionItems
+  gear.value = configJson.gear
+  grind.value = configJson.grind
+  legumes.value = configJson.legumes
+  proportion.value = configJson.proportion
+  speed.value = configJson.speed
+  nowWater.value = accordionItems.value.reduce((total: number, item: any) => total + item.water, 0)
+  originalFormula.value = configJson
+}
+
+const deepEqual = async (obj1: any, obj2: any) => {
+  if (obj1 === obj2) return true
+  if (obj1 === null || obj2 === null || typeof obj1 !== 'object' || typeof obj2 !== 'object') return false
+  const keys1 = Object.keys(obj1)
+  const keys2 = Object.keys(obj2)
+  if (keys1.length !== keys2.length) return false
+  for (const key of keys1) {
+    if (!keys2.includes(key) || !(await deepEqual(obj1[key], obj2[key]))) return false
+  }
+  return true
+}
+
+const createClickLock = (lockTime = 30000) => {
+  let lastClickTime = 0 
+  return function checkClickLock() {
+    const now = Date.now() 
+    if (now - lastClickTime < lockTime) return false
+    lastClickTime = now
+    return true
+  }
+}
+
+const checkBtnClick = createClickLock(30000)
+
+const startQuick = async () => {
+  if (runStatus.value !== 0) {
+    showToast({ type: 'fail', message: '设备当前正在运行，请先停止当前任务' })
+    return
+  }
+
+  // --- 💡 魔法修復核心 ---
+  // 1. 自動過濾掉水量為 0 的空段落 (就是這行讓您免於被 0ml 卡住)
+  const validItems = accordionItems.value.filter(item => Number(item.water) > 0)
+  
+  // 2. 重新編排順序，確保名稱正確
+  accordionItems.value = validItems.map((item, index) => ({
+    ...item,
+    id: index + 1,
+    paragraph: index === 0 ? '焖蒸' : `第${index}段`
+  }))
+
+  // 3. 強制同步最新水量，確保父子組件絕對同步
+  nowWater.value = accordionItems.value.reduce((total: number, item: any) => total + Number(item.water), 0)
+  // ----------------------
+
+  if (totalWaterVolume.value - nowWater.value !== 0) {
+    showToast({ type: 'fail', message: '请检查水量是否分配正确!' })
+    return
+  }
+  
+  if (accordionItems.value.length < 2) {
+    showToast({ type: 'fail', message: '请添加至少2个有效段落(水量不可为0)' })
+    return
+  }
+
+  quickShow.value = true
+  requestParams.value = {
+    id: id.value,
+    deviceId: deviceId.value,
+    userId: userStore.userInfo?.id || '',
+    name: name.value,
+    imageUrl: '',
+    sort: 0,
+    sharedToDevice: Number(sharedToDevice.value),
+    configJson: JSON.stringify({
+      legumes: legumes.value, proportion: proportion.value, grind: grind.value, gear: gear.value, speed: speed.value, accordionItems: accordionItems.value,
+    }),
+  }
+  
+  const isEqual = await deepEqual(JSON.parse(requestParams.value.configJson), originalFormula.value)
+  if (isEqual) {
+    const { run: updateFormulaApi } = useRequest<any>(() => httpPut('/repice/repice', requestParams.value))
+    updateFormulaApi()
+  }
+}
+
+const handleClose = () => { quickShow.value = false }
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms)) 
+
+//const handleStart = async () => {
+//  quickShow.value = false
+//  if (!checkBtnClick()) {
+//    showToast({ type: 'fail', message: '请勿重复发送指令' })
+//    return
+//  }
+//  if (id.value === 0) {
+//    sendCommandToMachine() 
+//    await delay(1000) 
+//  }
+//  await sendFormula()
+//}
+
+const handleStart = async () => {
+  quickShow.value = false
+  if (!checkBtnClick()) {
+    showToast({ type: 'fail', message: '请勿重复发送指令' })
+    return
+  }
+
+  // === 🚀 Web 測試專用無敵通道 ===
+  console.log('[Web 測試] 模擬成功發送指令給咖啡機...')
+  showToast({ type: 'success', message: '模擬發送成功！即將沖煮...' })
+  
+  // 假裝等個 1 秒鐘，然後直接暴力跳轉到沖煮動畫頁面！
+  setTimeout(() => {
+    localStorage.setItem('id', id.value.toString())
+    router.push('/pages-coffeeb/pulverizing/pulverizing?id=' + id.value)
+  }, 1000)
+  
+  return // 直接 return 結束，絕對不往下執行那些會報錯的真實藍牙與轉碼邏輯！
+  // ==============================
+
+  // 以下為原本的硬體執行邏輯 (已被上方的 return 擋住，暫時封印)
+  if (id.value === 0) {
+    sendCommandToMachine() 
+    await delay(1000) 
+  }
+  await sendFormula()
+}
+
+const sendFormula = async () => {
+  showLoadingToast({ message: '发送中...', forbidClick: true, duration: 0 })
+  try {
+    await retry(() => send(), 3, 500)
+  } catch (error: any) {
+    showToast({ type: 'fail', message: error.message || '命令执行失败' })
+  } finally {
+    closeToast()
+  }
+}
+
+const send = async () => {
+  const data = [(id.value >> 24) & 0xff, (id.value >> 16) & 0xff, (id.value >> 8) & 0xff, id.value & 0xff, proportion.value / 2, legumes.value, grind.value ? 1 : 0, gear.value, speed.value, accordionItems.value.length]
+  for (let i = 0; i < 5; i++) {
+    if (i < accordionItems.value.length) {
+      const item = accordionItems.value[i]
+      data.push(item.water, Number(`3.${item.velocity}`) * 10, item.temperature, item.type, item.time)
+    } else {
+      data.push(0, 0, 0, 0, 0)
+    }
+  }
+  const bytes: number[] = stringToGB2312(name.value) as number[]
+  data.push(...bytes)
+  const response = await coffeeMachineProtocol.sendRecipeData(data)
+  if (response === 'dd') {
+    sharedToDevice.value = 1
+    setTimeout(() => { start() }, 3000)
+  } else {
+    throw new Error('命令执行失败，请重新尝试')
+  }
+}
+
+const onSheetSelect = (action: any) => { if (action.value === 'brew') start() }
+
+const start = async () => {
+  const data = [1, grind.value ? 1 : 0, (id.value >> 24) & 0xff, (id.value >> 16) & 0xff, (id.value >> 8) & 0xff, id.value & 0xff, accordionItems.value.length, 0, 0, 0]
+  try {
+    await retry(async () => {
+      const response = await coffeeMachineProtocol.sendBrewMode(data)
+      if (response === 'dd') {
+        sheetShow.value = false
+        localStorage.setItem('id', id.value.toString())
+        router.push('/pages-coffeeb/pulverizing/pulverizing?id=' + id.value)
+      } else {
+        throw new Error('命令执行失败')
+      }
+    }, 3, 500)
+  } catch (error: any) {
+    showToast({ type: 'fail', message: error.message || '执行失败' })
+  } finally {
+    closeToast()
+  }
+}
+
+const handleSliderChangeCoffeeBeans = (value: number) => { legumes.value = value }
+const handleSliderChangeProportion = (value: number) => { proportion.value = value }
+const handleSliderChangeGear = (value: number) => { gear.value = value }
+
+watch([legumes, proportion], ([newLegumes, newProportion]) => {
+  totalWaterVolume.value = (newLegumes * newProportion) / 2
+  const total = totalWaterVolume.value
+  accordionItems.value.forEach((item) => {
+    item.percentage = total > 0 ? ((item.water / total) * 100).toFixed(0) : 0
+  })
+})
+
+const dangweiType = computed(() => {
+  const dangwei = gear.value
+  if (dangwei > 82) return '法压冷萃'
+  if (dangwei > 47 && dangwei <= 82) return '手冲咖啡'
+  if (dangwei > 23 && dangwei <= 47) return '爱乐压'
+  if (dangwei > 0 && dangwei <= 23) return '意式浓缩'
+  return '' 
+})
+
+const getThecipeForQuickCooking = async () => {
+  const device = bluetoothStore.connectedDevice
+  if (device?.productInfo?.configJson) {
+    const config = JSON.parse(device.productInfo.configJson)
+    const formulaId = config.formulaId
+    const { run } = useRequest<any>(() => httpGet(`/repice/repice/${formulaId}`))
+    const res = await run()
+    if (res && res.code === 200 && res.data) {
+      const result = res.data
+      const configJson = JSON.parse(result.configJson)
+      name.value = decodeURIComponent(result.name || '')
+      id.value = result.id
+      sheetData.value = result
+      accordionItems.value = configJson.accordionItems
+      gear.value = configJson.gear
+      grind.value = configJson.grind
+      legumes.value = configJson.legumes
+      proportion.value = configJson.proportion
+      speed.value = configJson.speed
+      nowWater.value = accordionItems.value.reduce((total: number, item: any) => total + item.water, 0)
+      originalFormula.value = configJson
+    } else {
+      resetParams()
+    }
+  } else {
+      resetParams()
+  }
+}
+
+const decimalToHex = (decimal: number) => {
+  try {
+    if (typeof decimal !== 'number' || isNaN(decimal) || !Number.isInteger(decimal)) throw new Error('输入必须是整数')
+    return decimal.toString(16).padStart(2, '0').toLowerCase()
+  } catch (error: any) {
+    return null
+  }
+}
+
+const sendCommandToMachine = () => {
+  const commandList = ['00', '00', '00', '00', decimalToHex(proportion.value / 2), decimalToHex(legumes.value), decimalToHex(grind.value ? 1 : 0), decimalToHex(gear.value), decimalToHex(speed.value), decimalToHex(accordionItems.value.length)]
+  for (let i = 0; i < 5; i++) {
+    if (i < accordionItems.value.length) {
+      const item = accordionItems.value[i]
+      commandList.push(decimalToHex(item.water), decimalToHex(Number(`3.${item.velocity}`) * 10), decimalToHex(item.temperature), decimalToHex(item.type), decimalToHex(item.time))
+    } else {
+      commandList.push(...[decimalToHex(0), decimalToHex(0), decimalToHex(0), decimalToHex(0), decimalToHex(0)])
+    }
+  }
+  const bytes: number[] = stringToGB2312(name.value) as number[]
+  bytes.forEach((byte) => { commandList.push(decimalToHex(byte)) })
+  
+  const strData = commandList.map(item => item || '00').join('') 
+  machineStatusStore.updateFormulaInfo(strData)
+  //machineStatusStore.clearBrewDataCache() 
+}
+</script>
+
+<style lang="scss" scoped>
+.scroll-Y { height: calc(100vh - 170px); }
+.item-list { height: calc(100vh - 250px); }
+.switch-box { display: flex; align-items: center; justify-content: space-between; height: 59px; padding: 0 14px; font-size: 14px; color: #004097; background-color: white; border: 1px solid #ebf0f7; border-radius: 9px; }
+.divider { display: inline-block; width: 1px; height: 10px; background-color: #e6e6e6; }
+.over-color { color: #e51f4d; }
+.footer { border-top: 1px solid #f1f1f1; }
+</style>

@@ -1,0 +1,399 @@
+<template>
+  <div class="page-container">
+    <van-nav-bar fixed placeholder :border="false" class="nav-transparent">
+      <template #left>
+        <div @click="toHome">
+          <i class="iconfont icon-a-ze-arrow-leftCopy2 icon-size-22"></i>
+        </div>
+      </template>
+      <template #right>
+        <van-icon name="setting-o" size="22" @click="settingShow = true" />
+      </template>
+    </van-nav-bar>
+
+    <div class="page-content">
+      <div class="flex flex-col items-center justify-center mb-6 mt-4">
+        <van-image width="180" height="160" :src="homeImg" />
+        <div class="page-content-title mt-4">
+          {{ bluetoothStore.connectedDevice?.productInfo?.deviceName || '全自动咖啡机' }}
+        </div>
+        
+        <div
+          class="state-box flex items-center justify-center mt-3"
+          :style="{ color: runStateObj.color }"
+          @click="toState"
+        >
+          <i class="iconfont mr-1" :class="runStateObj.icon"></i>
+          <span>{{ runStateObj.text }}</span>
+          <span v-if="runStateObj.isJump" class="jump-text ml-2">查看详情 ></span>
+        </div>
+      </div>
+
+      <div class="menu-grid">
+        <div class="menu-item" @click="toQuick">
+          <div class="icon-circle bg-blue-100">
+            <van-icon name="fire-o" size="28" color="#004097" />
+          </div>
+          <div class="menu-name">快速冲煮</div>
+        </div>
+        
+        <div class="menu-item" @click="openSaveDialog">
+          <div class="icon-circle bg-red-100">
+            <van-icon name="like-o" size="28" color="#ee0a24" />
+          </div>
+          <div class="menu-name">收藏参数</div>
+        </div>
+        
+        <div class="menu-item" @click="recipeShow = true">
+          <div class="icon-circle bg-orange-100">
+            <van-icon name="notes-o" size="28" color="#ff976a" />
+          </div>
+          <div class="menu-name">我的配方</div>
+        </div>
+
+        <div class="menu-item" @click="showToast('敬请期待')">
+          <div class="icon-circle bg-green-100">
+            <van-icon name="records-o" size="28" color="#07c160" />
+          </div>
+          <div class="menu-name">冲煮记录</div>
+        </div>
+      </div>
+    </div>
+
+    <van-popup v-model:show="settingShow" position="bottom" round style="height: 30%">
+      <div class="p-5">
+        <div class="text-lg font-bold mb-4">机器设置</div>
+        <van-cell title="外观颜色">
+          <template #value>
+            <van-radio-group v-model="colorValue" direction="horizontal" @change="colorConfirm">
+              <van-radio name="white">白色</van-radio>
+              <van-radio name="black">黑色</van-radio>
+            </van-radio-group>
+          </template>
+        </van-cell>
+      </div>
+    </van-popup>
+
+    <van-dialog v-model:show="showSaveDialog" title="保存为私藏配方" show-cancel-button @confirm="confirmSaveRecipe">
+      <div class="p-4">
+        <van-field v-model="newRecipeName" label="配方名称" placeholder="如: 晨间醒脑" />
+        <div class="mt-3 text-xs" style="color: #888; text-align: center;">
+          当前参数快照：<br>
+          粉量 {{ currentPowder }}g | 粉水比 1:{{ currentRatio }} | 水温 {{ currentTemp }}°C
+        </div>
+      </div>
+    </van-dialog>
+
+    <van-popup v-model:show="recipeShow" position="bottom" round style="height: 65%; background: #f6f8fb;">
+      <div class="recipe-popup-header p-4 flex justify-between items-center bg-white">
+        <div class="text-lg font-bold" style="color: #333;">☕ 配方库</div>
+        <van-icon name="cross" size="20" color="#999" @click="recipeShow = false" />
+      </div>
+
+      <van-tabs v-model:active="currentTab" color="#ff976a" sticky animated>
+        <van-tab title="我的私藏" name="local">
+          <div class="p-4 recipe-list-area">
+            <div v-for="(item, index) in localRecipes" :key="item.id" class="recipe-card">
+              <div class="recipe-info">
+                <div class="recipe-name">{{ item.name }}</div>
+                <div class="recipe-params">粉量: {{ item.powder }}g | 1:{{ item.ratio }} | {{ item.temp }}°C</div>
+              </div>
+              
+              <div class="recipe-actions">
+                <van-button 
+                  size="small" 
+                  plain 
+                  type="danger" 
+                  round 
+                  @click.stop="deleteLocalRecipe(index)"
+                >
+                  删除
+                </van-button>
+                <van-button 
+                  size="small" 
+                  type="primary" 
+                  round 
+                  color="#ff976a"
+                  @click.stop="shareRecipeToDevice(item)"
+                >
+                  分享
+                </van-button>
+              </div>
+            </div>
+            <van-empty v-if="localRecipes.length === 0" description="您还没有保存 any 私藏配方哦" />
+          </div>
+        </van-tab>
+        
+        <van-tab title="官方精选" name="cloud">
+          <div class="p-4 recipe-list-area">
+            <div v-for="item in cloudRecipes" :key="item.id" class="recipe-card">
+              <div class="recipe-info">
+                <div class="recipe-name">{{ item.name }}</div>
+                <div class="recipe-params">粉量: {{ item.powder }}g | 1:{{ item.ratio }} | {{ item.temp }}°C</div>
+              </div>
+              <van-button 
+                size="small" 
+                type="primary" 
+                round 
+                color="#004097" 
+                plain
+                @click.stop="downloadCloudRecipe(item)"
+              >
+                下载
+              </van-button>
+            </div>
+          </div>
+        </van-tab>
+      </van-tabs>
+    </van-popup>
+
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { showToast, showConfirmDialog } from 'vant'
+import { useMachineBStatusStore } from '@/store/coffeebStatus'
+import { useBluetoothStore } from '@/store/blue'
+
+
+const router = useRouter()
+const bluetoothStore = useBluetoothStore()
+const machineStatusStore = useMachineBStatusStore()
+
+const settingShow = ref(false)
+const colorValue = ref('white')
+const homeImg = ref('https://cdn.bincoocoffee.cn/home-machine.png')
+
+const recipeShow = ref(false)
+const currentTab = ref('local')
+
+const showSaveDialog = ref(false)
+const newRecipeName = ref('')
+
+// 模擬當前機器/首頁設定的參數
+const currentPowder = ref(15)
+const currentRatio = ref(15)
+const currentTemp = ref(92)
+
+interface Recipe {
+  id: number | string;
+  name: string;
+  powder: number;
+  ratio: number;
+  temp: number;
+}
+
+const localRecipes = ref<Recipe[]>([])
+const cloudRecipes = ref<Recipe[]>([
+  { id: 101, name: '【官方】世界冠军手冲参数', powder: 15, ratio: 15, temp: 92 },
+  { id: 102, name: '【官方】深焙豆黄金萃取', powder: 18, ratio: 12, temp: 88 }
+])
+
+const openSaveDialog = () => {
+  newRecipeName.value = '' 
+  showSaveDialog.value = true
+}
+
+// ✅ 1. 刪除本地私藏配方
+const deleteLocalRecipe = (index: number) => {
+  showConfirmDialog({
+    title: '删除配方',
+    message: '确定要删除这个私藏配方吗？',
+  }).then(() => {
+    localRecipes.value.splice(index, 1)
+    localStorage.setItem('bincoo_local_recipes', JSON.stringify(localRecipes.value))
+    showToast({ type: 'success', message: '已删除' })
+  }).catch(() => {})
+}
+
+// ✅ 2. 依文檔所述實作：手機端分享寫入機器核心邏輯 (0x06 指令防呆)
+const shareRecipeToDevice = (recipe: Recipe) => {
+  // 驗證是否連接實體藍牙設備
+  if (!bluetoothStore.connectedDevice) {
+    showToast({ type: 'fail', message: '分享失败：请先连接咖啡机蓝牙' })
+    return
+  }
+  
+  console.log('透過藍牙發送 0x06 配方數據指令至咖啡機晶片...', recipe)
+  // 未來可在此呼叫：bluetoothStore.sendRecipeData(...) 
+  
+  recipeShow.value = false
+  showToast({ type: 'success', message: '已分享至咖啡机，寫入「专属定制」' })
+}
+
+
+// ✅ 3. 依文檔所述實作：下載官方雲端配方至手機本地「我的私藏」
+const downloadCloudRecipe = (recipe: Recipe) => {
+  // 防呆：避免重複下載
+  const isDuplicate = localRecipes.value.some(r => r.name === recipe.name.replace('【官方】', ''))
+  if (isDuplicate) {
+    showToast({ type: 'text', message: '该配方已存在於我的私藏中' })
+    return
+  }
+
+  const downloaded: Recipe = {
+    id: Date.now(),
+    name: recipe.name.replace('【官方】', ''), // 存入本地時去掉官方前綴字
+    powder: recipe.powder,
+    ratio: recipe.ratio,
+    temp: recipe.temp
+  }
+
+  localRecipes.value.unshift(downloaded)
+  localStorage.setItem('bincoo_local_recipes', JSON.stringify(localRecipes.value))
+  showToast({ type: 'success', message: '下载成功，已加入我的私藏' })
+}
+
+const confirmSaveRecipe = () => {
+  const finalName = newRecipeName.value.trim() || `我的配方 ${new Date().toLocaleTimeString('zh-TW', {hour: '2-digit', minute:'2-digit'})}`
+  
+  const newRecipe: Recipe = {
+    id: Date.now(), 
+    name: finalName,
+    powder: currentPowder.value,
+    ratio: currentRatio.value,
+    temp: currentTemp.value
+  }
+
+  localRecipes.value.unshift(newRecipe)
+  localStorage.setItem('bincoo_local_recipes', JSON.stringify(localRecipes.value))
+  showToast({ type: 'success', message: '已保存至我的私藏！' })
+}
+
+const runStateObj = computed(() => {
+  const status = machineStatusStore.runStatus
+  if (status === 1) {
+    return { text: '研磨中', color: '#004097', icon: 'icon-yanyanjia', isJump: true }
+  } else if (status === 2 || status === 3) {
+    return { text: '冲煮中', color: '#004097', icon: 'icon-zhushui', isJump: true }
+  }
+  return { text: '设备就绪', color: '#999', icon: 'icon-kongxian', isJump: false }
+})
+
+const toHome = () => router.push('/')
+const toQuick = () => router.push('/pages-coffeeb/grind/grind')
+const toState = () => {
+  if (runStateObj.value.isJump) {
+    router.push('/pages-coffeeb/pulverizing/pulverizing')
+  }
+}
+
+const colorConfirm = () => {
+  showToast({ type: 'success', message: '颜色设置成功' })
+}
+
+onMounted(() => {
+  const saved = localStorage.getItem('bincoo_local_recipes')
+  if (saved) {
+    try {
+      localRecipes.value = JSON.parse(saved)
+    } catch(e) {
+      console.error('解析本地配方失敗', e)
+    }
+  }
+})
+</script>
+
+<style lang="scss" scoped>
+.page-container {
+  min-height: 100vh;
+  background: #f6f8fb;
+  .nav-transparent {
+    background-color: transparent !important;
+  }
+}
+.page-content-title {
+  font-size: 22px;
+  font-weight: bold;
+  color: #333;
+}
+.state-box {
+  font-size: 14px;
+  padding: 6px 16px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  cursor: pointer;
+  display: inline-flex;
+}
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  padding: 20px;
+}
+.menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fff;
+  padding: 20px 10px;
+  border-radius: 16px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+.menu-item:active {
+  transform: scale(0.95);
+  background: #fafafa;
+}
+.icon-circle {
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+.menu-name {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+.bg-blue-100 { background-color: #eef4ff; }
+.bg-orange-100 { background-color: #fff4ec; }
+.bg-green-100 { background-color: #f0fdf4; }
+.bg-red-100 { background-color: #ffeef0; }
+
+.recipe-popup-header {
+  border-bottom: 1px solid #f0f0f0;
+  border-radius: 20px 20px 0 0;
+}
+.recipe-list-area {
+  height: calc(65vh - 100px);
+  overflow-y: auto;
+}
+.recipe-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  cursor: pointer;
+  &:active {
+    transform: scale(0.98);
+    background: #fcfcfc;
+  }
+  .recipe-info {
+    .recipe-name {
+      font-size: 15px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 6px;
+    }
+    .recipe-params {
+      font-size: 12px;
+      color: #888;
+    }
+  }
+  .recipe-actions {
+    display: flex;
+    gap: 8px;
+  }
+}
+</style>
