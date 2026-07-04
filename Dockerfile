@@ -1,19 +1,15 @@
-# Build stage
-FROM node:22-slim AS builder
+FROM node:22-slim AS build
+LABEL "language"="nodejs"
+LABEL "framework"="vite"
 
 WORKDIR /src
 
-COPY package*.json ./
-
-RUN npm install
-
 COPY . .
+
+RUN npm install --legacy-peer-deps
 
 RUN npm run build
 
-# Runtime stage
 FROM zeabur/caddy-static
 
-COPY --from=builder /src/dist /www
-
-EXPOSE 8080
+COPY --from=build /src/dist /usr/share/caddy
