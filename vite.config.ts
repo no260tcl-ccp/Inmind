@@ -4,8 +4,7 @@ import basicSsl from '@vitejs/plugin-basic-ssl' // 引入 ssl 套件
 import path from 'path' // 需要引入 path
 
 export default defineConfig({
-  plugins: [vue(),basicSsl() // 啟用它
-  ],
+  plugins: [vue(),basicSsl()], // 啟用它
   resolve: {
     alias: {
       // 告訴 Vite 將 @ 替換為 src 目錄的絕對路徑
@@ -18,6 +17,8 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0', // 讓區域網路可以存取
-    https: true      // 強制開啟 https
+    https: true,      // 強制開啟 https
+	middleware:true,
+	hmr:false
   }
 })
