@@ -1,0 +1,7 @@
+apiVersion: zeabur.com/v1
+kind: Service
+metadata:
+  name: inmind
+spec:
+  build:
+    dockerfile: ./Dockerfile
