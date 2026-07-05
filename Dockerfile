@@ -1,24 +1,10 @@
-FROM node:20-alpine
-
+FROM node:22-slim AS build
+LABEL "language"="nodejs"
+LABEL "framework"="vite"
 WORKDIR /src
-
-# 复制项目文件
 COPY . .
+RUN npm install
+RUN npm run build          # ✅ 構建靜態檔案，而不是啟動開發伺服器
 
-# 进入项目目录
-WORKDIR /src/Inmind/coffee-web-vite
-
-# 安装依赖
-RUN npm install --legacy-peer-deps
-
-# 构建项目（生产构建，不是开发服务器）
-RUN npm run build
-
-# 使用轻量级 HTTP 服务器来提供静态文件
-RUN npm install -g http-server
-
-# 暴露端口
-EXPOSE 8080
-
-# 启动 HTTP 服务器
-CMD ["http-server", "dist", "-p", "8080"]
+FROM zeabur/caddy-static
+COPY --from=build /src/dist /usr/share/caddy  # ✅ 提供靜態檔案
