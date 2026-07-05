@@ -229,6 +229,33 @@ export function throttle(fn: (...args: any[]) => void, delay = 500) {
   }
 }
 
+//
+
+// --- 補上編譯器缺少的工具函數導出 ---
+
+export function getDomain() {
+  return window.location.hostname || '';
+}
+
+export function stripHtmlTags(str: string) {
+  return str ? str.replace(/<[^>]*>/g, '') : '';
+}
+
+export function dangweiType(gear: number) {
+  if (gear > 82) return '法压冷萃';
+  if (gear > 47 && gear <= 82) return '手冲咖啡';
+  if (gear > 23 && gear <= 47) return '爱乐压';
+  return '意式浓缩';
+}
+
+export function stringToUTF8Array(str: string) {
+  return new TextEncoder().encode(str);
+}
+
+// retry 函式在您的 index.ts 中原本就有了，檢查一下是否已經正確導出，若無請加上 export
+//export { retry } from './index';
+//
+
 // 4. 非同步重試函數 (Retry)
 export function retry(fn: any, maxRetry: number, timeout: number) {
   return new Promise((resolve, reject) => {

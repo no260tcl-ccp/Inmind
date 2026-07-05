@@ -2,8 +2,10 @@
   "extends": "@vue/tsconfig/tsconfig.dom.json",
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-	"composite": true, 
-    "types": ["vite/client", "web-bluetooth", "uni-app"],
+	"composite": false,
+    "declaration": false,
+    "declarationMap": false, 
+    "types": ["vite/client", "web-bluetooth"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]

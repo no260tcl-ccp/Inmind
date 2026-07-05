@@ -1,13 +1,3 @@
-<route lang="json5" type="page">
-{
-  layout: 'default',
-  style: {
-    navigationBarTitleText: '冲煮',
-    navigationStyle: 'custom',
-    disableScroll: true,
-  },
-}
-</route>
 <template>
   <view class="grinder-page">
     <wd-navbar safeAreaInsetTop left-arrow fixed :bordered="false" @click-left="handleBack">

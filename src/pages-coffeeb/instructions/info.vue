@@ -1,27 +1,20 @@
-<route lang="json5">
-{
-  style: {
-    navigationBarTitleText: '用户手册',
-  },
-}
-</route>
 <template>
   <view class="page-container" v-if="questionInfo">
     <view class="page-title px-4">{{ questionInfo.title }}</view>
     <div class="page-content">
-      <mp-html
+      <div
         container-style="padding: 16px;background: #ffffff; padding-bottom: 40px;line-height: 24px;"
         :content="questionInfo.content"
         :tag-style="{
           video: 'text-algin: center; width: 100%;',
-        }"
-      />
+        }">
+      </div>
     </div>
   </view>
 </template>
 
 <script setup lang="ts">
-import mpHtml from '@/uni_modules/mp-html/components/mp-html/mp-html.vue'
+//import mpHtml from '@/uni_modules/mp-html/components/mp-html/mp-html.vue'
 import { getDomain } from '@/utils'
 const questionInfo = ref(null)
 onShow(() => {})

@@ -1,12 +1,3 @@
-<route lang="json5">
-{
-  style: {
-    navigationBarTitleText: '修改设备名称',
-    navigationBarBackgroundColor: '#ffffff',
-    disableScroll: true,
-  },
-}
-</route>
 <template>
   <view class="device-information">
     <input

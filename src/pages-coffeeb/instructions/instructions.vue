@@ -1,12 +1,3 @@
-<route lang="json5">
-{
-  style: {
-    navigationBarTitleText: '用户手册',
-    navigationBarBackgroundColor: '#ffffff',
-    disableScroll: true,
-  },
-}
-</route>
 <template>
   <view class="page-container">
     <view class="page-header flex justify-center items-center">

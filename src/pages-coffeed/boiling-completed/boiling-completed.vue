@@ -1,12 +1,3 @@
-<route lang="json5">
-{
-  style: {
-    navigationBarTitleText: '沖煮完成',
-    navigationStyle: 'custom',
-  },
-}
-</route>
-
 <template>
   <view class="h-screen bg-white">
     <go-back :titleUrl="titleUrl"></go-back>

@@ -1,10 +1,3 @@
-<route lang="json5">
-{
-  style: {
-    navigationBarTitleText: '机器信息',
-  },
-}
-</route>
 <template>
   <view style="height: 100vh; background: white">
     <wd-status-tip

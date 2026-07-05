@@ -1,12 +1,3 @@
-<route lang="json5">
-{
-  style: {
-    navigationBarTitleText: '配方参数',
-    disableScroll: true,
-    navigationStyle: 'custom',
-  },
-}
-</route>
 <template>
   <view v-if="step === 1">
     <view style="height: 100vh; background-color: white">
@@ -259,7 +250,7 @@
 import { ref } from 'vue'
 import { useToast } from 'wot-design-uni'
 import { useUserStore, useBluetoothStore } from '@/store'
-import { t } from '@/locale/index'
+//import { t } from '@/locale/index'
 import AccordionItem from '../components/accordion-item/accordion-item.vue'
 import { httpPost, httpPut } from '@/utils/http'
 // 动画

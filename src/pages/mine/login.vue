@@ -1,11 +1,3 @@
-<route lang="json5" type="page">
-{
-  style: {
-    navigationStyle: 'custom',
-    disableScroll: true,
-  },
-}
-</route>
 <template>
   <view
     class="px-4 page-container"

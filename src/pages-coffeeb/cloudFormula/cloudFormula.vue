@@ -1,12 +1,3 @@
-<route lang="json5">
-{
-  style: {
-    navigationBarTitleText: '为您推荐',
-    navigationBarBackgroundColor: '#ffffff',
-    disableScroll: true,
-  },
-}
-</route>
 <template>
   <view class="content">
     <view class="hot-list">

@@ -1,10 +1,3 @@
-<route lang="json5">
-{
-  style: {
-    navigationBarTitleText: '用户协议',
-  },
-}
-</route>
 <template>
   <view class="page-container">
     <scroll-view class="scroll-Y" :scroll-y="true">

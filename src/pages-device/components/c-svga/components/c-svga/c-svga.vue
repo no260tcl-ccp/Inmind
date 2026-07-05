@@ -217,25 +217,6 @@
 		
 	}
 </script>
-
-
-<!-- #ifndef MP -->
-
-	<!-- #ifdef VUE3 -->
-	<script lang="renderjs" src='./js/render.js' module='svga'></script>
-	<!-- #endif -->
-	
-	<!-- #ifdef VUE2 -->
-	<script lang="renderjs" module='svga'>
-	import svgaRender from "./js/render.js"
-	export default {
-		mixins:[svgaRender]
-	}
-	</script>
-	<!-- #endif -->
-
-	
-<!-- #endif -->
 <style lang="scss" scoped>
 	.c-svga {
 		// width: v-bind(width);

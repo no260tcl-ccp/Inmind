@@ -1,10 +1,3 @@
-<route lang="json5">
-{
-  style: {
-    navigationBarTitleText: '用户手册',
-  },
-}
-</route>
 <template>
   <view class="px-4 page-container">
     <view class="page-title">初次使用指南</view>

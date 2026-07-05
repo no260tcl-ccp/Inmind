@@ -1,10 +1,3 @@
-<route lang="json5">
-{
-  style: {
-    navigationBarTitleText: '客服',
-  },
-}
-</route>
 <template>
   <view class="customer">
     <image

@@ -1,12 +1,3 @@
-<route lang="json5" type="page">
-{
-  layout: 'default',
-  style: {
-    navigationBarTitleText: '注水',
-    disableScroll: true,
-  },
-}
-</route>
 <template>
   <view class="grinder-page">
     <view class="machine-container">

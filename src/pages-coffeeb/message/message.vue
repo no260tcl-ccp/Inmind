@@ -1,11 +1,3 @@
-<route lang="json5">
-{
-  style: {
-    navigationStyle: 'custom',
-    navigationBarTitleText: '消息',
-  },
-}
-</route>
 <template>
   <view class="px-4 page-container">
     <wd-navbar
