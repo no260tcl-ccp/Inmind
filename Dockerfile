@@ -10,6 +10,8 @@ FROM node:22-slim
 WORKDIR /app
 RUN npm install -g http-server
 COPY --from=build /src/dist /app/dist
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
 ENV PORT=8080
 EXPOSE 8080
-CMD ["sh", "-c", "http-server dist -p ${PORT} -c-1"]
+ENTRYPOINT ["/app/start.sh"]
