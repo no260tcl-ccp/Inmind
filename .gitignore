@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# 2026-07-06 add 
+dist/
+node_modules/
+.env
+.env.local
+
