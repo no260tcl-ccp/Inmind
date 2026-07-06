@@ -5,6 +5,7 @@ import * as Pinia from 'pinia'
 import { createPersistedState } from 'pinia-plugin-persistedstate'
 import App from './App.vue'
 import router from './router/index' 
+import i18n from './locale'
 
 // 🌟 1. 引入 Vant 核心與它的全域 CSS 樣式
 import Vant from 'vant';
@@ -136,6 +137,8 @@ console.log('%c [System] Web Bluetooth 適配器注入完成。', 'color: #42b98
 // 3. 建立 Vue 實體與註冊元件
 // ==================================================================
 const app = createClientApp(App)
+
+app.use(i18n) // add 2026-07-06
 
 // 🌟 2. 讓 Vue 徹底裝備 Vant
 app.use(Vant);
