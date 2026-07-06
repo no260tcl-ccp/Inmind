@@ -8,7 +8,7 @@ RUN npm run build
 
 FROM node:22-slim
 WORKDIR /app
-RUN npm install -g serve
+RUN npm install -g http-server
 COPY --from=build /src/dist /app/dist
 EXPOSE 3000
-CMD ["serve", "-s", "dist", "-l", "3000"]
+CMD ["http-server", "dist", "-p", "3000", "-c-1"]
