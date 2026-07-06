@@ -55,8 +55,18 @@ const machineStatusStore = useMachineBStatusStore()
 const cdnBaseUrl = import.meta.env.VITE_CDN_BASE_URL || 'https://cdn.bincoocoffee.cn'
 const topPadding = ref(44)
 
+//const deviceList = ref([
+//  { status: 0, img: 'https://cdn.bincoocoffee.cn/home-machine.png', productInfo: { deviceName: 'Bincoo 咖啡机 04', deviceSn: 'BC-2026-04', id: 'web-device' } }
+//])
+
+import inmindImg from '@/static/images/ext/inmind-v.png' // 假設你的 @ 別名指向 src 目錄
+
 const deviceList = ref([
-  { status: 0, img: 'https://cdn.bincoocoffee.cn/home-machine.png', productInfo: { deviceName: 'Bincoo 咖啡机 04', deviceSn: 'BC-2026-04', id: 'web-device' } }
+  { 
+    status: 0, 
+    img: inmindImg, // 使用引入的變數
+    productInfo: { deviceName: 'Bincoo 咖啡机 04', deviceSn: 'BC-2026-04', id: 'web-device' } 
+  }
 ])
 
 const connectionStatus = computed(() => bluetoothStore.connectionStatus)
