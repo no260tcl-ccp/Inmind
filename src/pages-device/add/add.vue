@@ -330,7 +330,7 @@ const isRotating = ref(false)
 const cSvgaRef = ref()
 const deviceVersionStore = useDevicVersionStore()
 
-components: { LineExternalBrowserPrompt }
+//components: { LineExternalBrowserPrompt }
 
 watch(
   () => bluetoothStore.discoveredDevices,
