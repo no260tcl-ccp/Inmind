@@ -1,13 +1,5 @@
-<route lang="json">
-{
-  "style": {
-    "navigationBarTitleText": "%index.device%",
-    "disableScroll": true
-  }
-}
-</route>
-
 <template>
+  <LineExternalBrowserPrompt />
   <view class="pt-2 px-4 page-container">
     <!-- 搜索设备标题栏 -->
     <!-- <wd-notice-bar
@@ -320,6 +312,7 @@
 </template>
 
 <script lang="ts" setup>
+import LineExternalBrowserPrompt from '@/components/LineExternalBrowserPrompt.vue'
 import { useBluetoothStore, useDevicVersionStore, useMachineEStatusStore } from '@/store'
 import { updateTitle } from '@/utils/title'
 import { useToast } from 'wot-design-uni'
@@ -336,6 +329,9 @@ const totast = useToast()
 const isRotating = ref(false)
 const cSvgaRef = ref()
 const deviceVersionStore = useDevicVersionStore()
+
+components: { LineExternalBrowserPrompt }
+
 watch(
   () => bluetoothStore.discoveredDevices,
   (newValue) => {
