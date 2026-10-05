@@ -1,0 +1,50 @@
+[
+  {
+    "id": 101,
+    "name": "金杯手冲咖啡",
+    "avatar": "https://cdn.bincoocoffee.cn/default_avatar.png",
+    "configJson": "{\"legumes\":15,\"proportion\":30,\"accordionItems\":[{\"stage\":1},{\"stage\":2}]}"
+  },
+  {
+    "id": 102,
+    "name": "深烘三段注水",
+    "avatar": "https://cdn.bincoocoffee.cn/default_avatar.png",
+    "configJson": "{\"legumes\":18,\"proportion\":32,\"accordionItems\":[{\"stage\":1},{\"stage\":2},{\"stage\":3}]}"
+  },
+  {
+    "id": 103,
+    "name": "浅烘冰手冲",
+    "avatar": "https://cdn.bincoocoffee.cn/default_avatar.png",
+    "configJson": "{\"legumes\":20,\"proportion\":24,\"accordionItems\":[{\"stage\":1},{\"stage\":2},{\"stage\":3},{\"stage\":4}]}"
+  },
+  {
+    "id": 104,
+    "name": "瑰夏极速萃取",
+    "avatar": "https://cdn.bincoocoffee.cn/default_avatar.png",
+    "configJson": "{\"legumes\":16,\"proportion\":28,\"accordionItems\":[{\"stage\":1},{\"stage\":2}]}"
+  },
+  {
+    "id": 105,
+    "name": "经典 4:6 冲煮法",
+    "avatar": "https://cdn.bincoocoffee.cn/default_avatar.png",
+    "configJson": "{\"legumes\":20,\"proportion\":30,\"accordionItems\":[{\"stage\":1},{\"stage\":2},{\"stage\":3},{\"stage\":4},{\"stage\":5}]}"
+  },
+  {
+    "id": 106,
+    "name": "耶加雪菲花香模式",
+    "avatar": "https://cdn.bincoocoffee.cn/default_avatar.png",
+    "configJson": "{\"legumes\":14,\"proportion\":32,\"accordionItems\":[{\"stage\":1},{\"stage\":2},{\"stage\":3}]}"
+  },
+  {
+    "id": 107,
+    "name": "浓郁曼特宁",
+    "avatar": "https://cdn.bincoocoffee.cn/default_avatar.png",
+    "configJson": "{\"legumes\":18,\"proportion\":26,\"accordionItems\":[{\"stage\":1},{\"stage\":2}]}"
+  },
+  {
+    "id": 108,
+    "name": "厌氧发酵豆专用",
+    "avatar": "https://cdn.bincoocoffee.cn/default_avatar.png",
+    "configJson": "{\"legumes\":15,\"proportion\":30,\"accordionItems\":[{\"stage\":1},{\"stage\":2},{\"stage\":3},{\"stage\":4}]}"
+  }
+]

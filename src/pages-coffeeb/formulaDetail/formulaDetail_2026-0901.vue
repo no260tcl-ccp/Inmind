@@ -157,19 +157,17 @@ const isWaterMatch = computed(() => targetTotalWater.value === currentStagesWate
  */
 const initForm = () => {
   const queryData = route.query.data as string
-  //console.info('【修改模式】Params', params)
+  
   if (queryData) {
     // 🚀 【修改模式】：解析發送端傳過來的參數並進行回填
     try {
       const params = JSON.parse(decodeURIComponent(queryData))
-	  
+	  console.info('【修改模式】Params', params)
       isEditMode.value = true
       recipeId.value = params.id
       recipeName.value = params.name || ''
       
-      // ✅ 修正點：因為前一頁已經把 configJson 打平了，所以參數直接在 params 身上
-      const config = params.configJson || params || {} 
-      
+      const config = params.configJson || {}
       legumes.value = config.legumes || 15
       proportion.value = config.proportion || 30
       grind.value = config.grind !== undefined ? config.grind : true

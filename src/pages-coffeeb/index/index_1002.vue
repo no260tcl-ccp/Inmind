@@ -274,56 +274,24 @@ const itemClick = (item, index) => {
 }
 
 //這 配方存在 /static/data/recipes.json 的做法 ，是變通做法 2026-0911
-//const getMyFormula = async () => {
-//  try {
-//    const response = await fetch('/static/data/recipes.json')
-//    const rows = await response.json()
-//
-    // 簡化處理：解析 configJson 並將其綁定至 rawConfig
-//    rows.forEach((el: any) => {
-//      if (typeof el.configJson === 'string') {
-//        el.configJson = JSON.parse(el.configJson)
-//      }
-      // 綁定至 rawConfig 供 Template 讀取與套用預設值
-//      el.rawConfig = el.configJson
-//    })
-
-//    dataList.value = rows
-//    console.info('dataList 載入成功:', dataList.value)
-//  } catch (error) {
-//    console.error('讀取靜態配方 JSON 失敗:', error)
-//  }
-//}
-
-// 純前端版：定義統一的儲存 Key (對齊 myFormula.vue)
-const STORAGE_KEY = 'bincoo_my_recipes'
-
-const getMyFormula = () => {
+const getMyFormula = async () => {
   try {
-    // 1. 從 LocalStorage 讀取資料
-    const rawData = localStorage.getItem(STORAGE_KEY)
-    let rows = rawData ? JSON.parse(rawData) : []
+    const response = await fetch('/static/data/recipes.json')
+    const rows = await response.json()
 
-    // 2. 簡化處理與防呆：解析 configJson 
+    // 簡化處理：解析 configJson 並將其綁定至 rawConfig
     rows.forEach((el: any) => {
       if (typeof el.configJson === 'string') {
-        try {
-          el.configJson = JSON.parse(el.configJson)
-        } catch (e) {
-          el.configJson = {}
-        }
+        el.configJson = JSON.parse(el.configJson)
       }
-      if (!el.configJson) el.configJson = {}
-
-      // 3. 綁定至 rawConfig 供 Template 讀取與套用預設值 (維持 index.vue 的相容性)
+      // 綁定至 rawConfig 供 Template 讀取與套用預設值
       el.rawConfig = el.configJson
     })
 
     dataList.value = rows
-    console.info('dataList 從 LocalStorage 載入成功:', dataList.value)
+    console.info('dataList 載入成功:', dataList.value)
   } catch (error) {
-    console.error('讀取本機配方失敗:', error)
-    dataList.value = []
+    console.error('讀取靜態配方 JSON 失敗:', error)
   }
 }
 

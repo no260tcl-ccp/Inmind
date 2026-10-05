@@ -1,0 +1,184 @@
+
+myFormula_weChat_Original.pdf 的咖啡配方從哪裡讀取，若新增或經修改會儲存在哪裡 ?
+=================================================================================
+在 `myFormula_weChat_Original.pdf` 程式碼中，咖啡配方的讀取與儲存機制如下：
+
+### 1. 咖啡配方從哪裡讀取？
+* **後端伺服器 API**：頁面初始化或觸發下拉刷新時，會呼叫 `queryList` 函式，透過 `httpGet` 向後端伺服器 API 接口 **`/repice/repice/list`** 發送請求。
+* 請求時會帶入分頁參數（`pageNum`、`pageSize`）以及使用者與設備識別碼（`userId`、`deviceId`），從伺服器動態拉取配方列表資料。
+
+### 2. 若新增或經修改會儲存在哪裡？
+* **後端伺服器資料庫（主要儲存）**：
+  * **修改/置頂配方**：當進行配方設定更新或置頂排序時，會呼叫 `setTopAndUpdateSharedToDevice` 函式，發送 **`httpPut`** 請求至 **`/repice/repice`** 接口，將更新後的 JSON 參數（包含咖啡粉量、粉水比、研磨狀態、檔位、轉速及多段注水細節）同步儲存至遠端伺服器數據庫中。
+  * **新增配方**：點擊「創建配方」按鈕時，會透過路由導向至 **`/pages-coffeeb/formula/formula`** 編輯頁面，並在該頁面填寫完畢後提交儲存至後端伺服器。
+* **手機本地快取（暫存用途）**：
+  * 當使用者點擊「沖煮」或將配方傳送給咖啡機時，程式會使用小程式原生的 **`uni.setStorageSync('id', item.id)`**，將當前正在執行的配方 ID 暫存在手機本地記憶體中，以供後續沖煮進度頁面讀取。
+
+如何將原來微信版 myFormula.vue 裡以 API 後端儲存機制，改寫為純前端網頁版的 LocalStorage 離線儲存架構?
+=====================================================================================================
+要將原版小程式（`myFormula_weChat_Original.pdf`）中依賴 API 伺服器（`httpGet`、`httpPut`、`httpDelete`）的資料儲存機制，改寫為**純前端 Web 版的 `LocalStorage` 離線儲存架構**，關鍵在於將「網路 CRUD 請求」重構為「本機 JSON 陣列讀寫」。
+
+以下是具體的架構設計與改寫步驟：
+
+---
+
+### 1. 定義統一的儲存 Key 與資料結構
+在 Web 專案中，統一使用一個 key（例如 `'bincoo_my_recipes'`）來存放所有的配方陣列。
+
+每個配方物件包含唯一的 `id`（本機生成微秒時間戳）、`name` 以及 `configJson`（包含粉量、粉水比、段數細節等）。
+
+---
+
+### 2. 五大核心 CRUD 操作改寫
+
+#### ① 查詢與載入清單 (`queryList` ➔ 讀取 LocalStorage)
+* **原本 (API)**：呼叫 `httpGet('/repice/repice/list', params)` 發送分頁與使用者識別碼請求。
+* **改寫為 LocalStorage**：
+```javascript
+const STORAGE_KEY = 'bincoo_my_recipes'
+
+const queryList = () => {
+  try {
+    const rawData = localStorage.getItem(STORAGE_KEY)
+    let recipes = rawData ? JSON.parse(rawData) : []
+    
+    // 若本機為空，可載入預設的初始配方
+    if (recipes.length === 0) {
+      recipes = getPresetRecipes() // 載入預設模組
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes))
+    }
+
+    // 本地排序：置頂 (isTop) 優先，其餘按建立時間倒序
+    recipes.sort((a, b) => (b.isTop ? 1 : 0) - (a.isTop ? 1 : 0))
+
+    dataList.value = recipes
+    total.value = recipes.length
+  } catch (e) {
+    console.error('讀取本機配方失敗:', e)
+    dataList.value = []
+  }
+}
+```
+
+---
+
+#### ② 新增與修改配方 (`saveRecipe` ➔ 寫入 LocalStorage)
+* **原本 (API)**：在編輯頁中發送 `httpPost` 或 `httpPut` 寫入伺服器。
+* **改寫為 LocalStorage**（在 `formula.vue` 或配方保存處）：
+```javascript
+const saveRecipeToLocal = (newRecipe) => {
+  const rawData = localStorage.getItem(STORAGE_KEY)
+  const recipes = rawData ? JSON.parse(rawData) : []
+
+  // 判斷是「修改已有配方」還是「新增配方」
+  const existingIndex = recipes.findIndex(item => item.id === newRecipe.id)
+
+  if (existingIndex > -1) {
+    // 編輯：更新現有數據
+    recipes[existingIndex] = {
+      ...recipes[existingIndex],
+      ...newRecipe,
+      updateTime: Date.now()
+    }
+  } else {
+    // 新增：生成唯一的本地 ID 並插在最前頭
+    const recipeToInsert = {
+      id: Date.now(), // 採用時間戳作為唯一 ID
+      name: newRecipe.name || '未命名配方',
+      configJson: newRecipe.configJson,
+      isTop: false,
+      createTime: new Date().toISOString()
+    }
+    recipes.unshift(recipeToInsert)
+  }
+
+  // 同步寫入本機硬碟
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes))
+}
+```
+
+---
+
+#### ③ 配方置頂功能 (`setTop` ➔ 陣列重排與保存)
+* **原本 (API)**：呼叫 `httpPut('/repice/repice')` 修改後端的 `sort` 欄位並刷新清單。
+* **改寫為 LocalStorage**：
+```javascript
+const setTop = (item, index) => {
+  const rawData = localStorage.getItem(STORAGE_KEY)
+  if (!rawData) return
+
+  let recipes = JSON.parse(rawData)
+  const targetIndex = recipes.findIndex(r => r.id === item.id)
+
+  if (targetIndex > -1) {
+    // 切換置頂狀態
+    const target = recipes[targetIndex]
+    target.isTop = !target.isTop
+
+    // 將目標項目抽離並重新擺放（置頂移至第 0 位）
+    recipes.splice(targetIndex, 1)
+    if (target.isTop) {
+      recipes.unshift(target)
+    } else {
+      recipes.push(target)
+    }
+
+    // 存回 LocalStorage 並更新畫面
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes))
+    queryList()
+  }
+}
+```
+
+---
+
+#### ④ 刪除與批次清空 (`deleteItem` / `deleteAll` ➔ 陣列過濾)
+* **原本 (API)**：呼叫 `httpDelete('/repice/repice/${ids}')` 刪除伺服器上記錄。
+* **改寫為 LocalStorage**：
+```javascript
+const confirmDelete = () => {
+  if (!crrentItem.value) return
+
+  const rawData = localStorage.getItem(STORAGE_KEY)
+  if (rawData) {
+    let recipes = JSON.parse(rawData)
+    // 使用 filter 排除欲刪除的 ID
+    recipes = recipes.filter(r => r.id !== crrentItem.value.id)
+    
+    // 存回本機並重新渲染
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes))
+    queryList()
+    showToast('刪除成功')
+  }
+  delShow.value = false
+}
+```
+
+---
+
+#### ⑤ 跨頁面資料傳遞（代替 URL 長字串）
+原版程式碼使用 `encodeURIComponent(JSON.stringify(item))` 拼接到 URL 傳參。在 Web 離線版本中，可以使用一個臨時的快遞櫃 Key：
+
+```javascript
+// 1. 發送頁（跳轉前存入快遞櫃）
+const goToDetail = (item) => {
+  localStorage.setItem('bincoo_transit_data', JSON.stringify(item))
+  router.push('/pages-coffeeb/formulaDetail/formulaDetail')
+}
+
+// 2. 接收頁（formulaDetail.vue onMounted 時取出）
+const currentRecipe = ref(null)
+onMounted(() => {
+  const transitData = localStorage.getItem('bincoo_transit_data')
+  if (transitData) {
+    currentRecipe.value = JSON.parse(transitData)
+  }
+})
+```
+
+---
+
+### 💡 改造優勢總結
+1. **完全離線可用**：無需依賴後端 Server 部署，在 Chrome 瀏覽器或 PWA 環境中皆能 100% 獨立運行。
+2. **零延遲與零跨域 (No CORS)**：徹底避免了 Web 端發送 API 時常見的跨域阻擋（CORS Error）以及網路延遲問題。
+3. **保留完整功能**：置頂、編輯、刪除、藍牙封包發送（0x06）等邏輯皆可完美相容運作。

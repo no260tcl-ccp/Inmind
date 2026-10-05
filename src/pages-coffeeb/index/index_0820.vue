@@ -35,41 +35,28 @@
           <van-icon name="arrow" color="#999" />
         </div>
 
-        <div class="swiper-card-content mt-4" :style="{ marginBottom: dataList.length > 0 ? '0' : '15px' }">
+        <div class="swiper-card-content mt-4" :style="{ marginBottom: localRecipes.length > 0 ? '0' : '15px' }">
           <!-- 有資料時顯示輪播 -->
-          <van-swipe 
-            v-if="dataList.length > 0" 
-            class="swiper" 
-            :loop="true" 
-            :width="280" 
-            :show-indicators="false"
-          >
-            <van-swipe-item v-for="(item, index) in dataList" :key="index" class="pr-3">
-              <!-- 加入 .stop 防止點擊事件向上冒泡，對應微信的 @click.stop -->
-              <div class="swiper-item flex bg-white shadow-sm rounded-lg p-2 h-full cursor-pointer" @click.stop="itemClick(item, index)">
-        
-                <!-- 左側圖片區塊 (還原 wd-img 結構) -->
-                <div class="flex justify-center items-center">
-                  <div class="img-box relative flex justify-center items-center h-20 w-20 bg-gray-50 rounded-md">
-                    <van-image width="78" height="78" :src="item.rawConfig?.bgUrl || defaultRecipeImg" fit="contain" />
-                    <div class="img-num absolute -bottom-3 -right-1 font-black text-5xl tracking-tighter" :style="{ color: item.rawConfig?.textColor || '#F5ABBD' }">
-                      {{ item.rawConfig?.accordionItems ? item.rawConfig.accordionItems.length : '' }}
-                    </div>
+          <van-swipe v-if="localRecipes.length > 0" class="swiper" :loop="false" :width="260" :show-indicators="false">
+            <van-swipe-item v-for="(item, index) in localRecipes" :key="item.id" class="pr-3">
+              <div class="swiper-item flex items-center bg-white shadow-sm rounded-lg p-2 h-full cursor-pointer" @click="goToDetail(item)">
+                
+                <!-- 左側圖片與段數 -->
+                <div class="img-box relative flex-shrink-0 flex justify-center items-center h-20 w-20 bg-gray-50 rounded-md overflow-visible">
+                  <van-image width="78" height="78" :src="item.rawConfig?.bgUrl || defaultRecipeImg" fit="contain" />
+                  <div class="img-num absolute -bottom-3 -right-1 font-black text-5xl tracking-tighter" :style="{ color: item.rawConfig?.textColor || '#F5ABBD' }">
+                    {{ item.rawConfig?.accordionItems?.length || 2 }}
                   </div>
                 </div>
 
-                <!-- 右側內容區塊 (還原三行文字與粉水比計算邏輯) -->
-                <div class="flex flex-col justify-center pl-3 pr-3 text-xs content-box w-full overflow-hidden">
-                  <div class="name van-ellipsis font-bold text-gray-800 text-sm mb-1">{{ item.name }}</div>
-          
-                  <div class="digital-numbers text-gray-500 mb-0.5">
-                    粉水比：
-                    {{ item.rawConfig?.proportion ? `1:${(item.rawConfig.proportion / 2).toFixed(1)}` : '-' }}
-                    {{ item.rawConfig?.proportion && item.rawConfig?.legumes ? (item.rawConfig.proportion / 2) * item.rawConfig.legumes + 'ml' : '-' }}
+                <!-- 右側文字內容 -->
+                <div class="content-box flex flex-col justify-center pl-4 pr-1 text-xs text-gray-500 w-full overflow-hidden">
+                  <div class="name van-ellipsis font-bold text-gray-800 text-sm mb-1.5">{{ item.name }}</div>
+                  <div class="digital-numbers mb-0.5">
+                    粉水比：1:{{ item.ratio }} {{ (item.ratio * item.powder).toFixed(0) }}ml
                   </div>
-          
-                  <div class="digital-numbers text-gray-500">
-                    咖啡粉：{{ item.rawConfig?.legumes ? `${item.rawConfig.legumes}g` : '-' }}
+                  <div class="digital-numbers">
+                    咖啡粉：{{ item.powder }}g
                   </div>
                 </div>
 
@@ -137,12 +124,20 @@
 
     </div>
 
-    <!-- 移除原本的 van-popup，改為調用 setting-popup 組件 -->
-    <setting-popup 
-     :setting-show="settingShow" 
-     :has-alarm="false" 
-     @close-show="settingShow = false" 
-    />
+    <!-- 機器設置彈窗 -->
+    <van-popup v-model:show="settingShow" position="bottom" round style="height: 30%">
+      <div class="p-5">
+        <div class="text-lg font-bold mb-4">机器设置</div>
+        <van-cell title="外观颜色">
+          <template #value>
+            <van-radio-group v-model="colorValue" direction="horizontal" @change="colorConfirm">
+              <van-radio name="white">白色</van-radio>
+              <van-radio name="black">黑色</van-radio>
+            </van-radio-group>
+          </template>
+        </van-cell>
+      </div>
+    </van-popup>
   </div>
 </template>
 
@@ -158,27 +153,22 @@ import quickBoilingMachineImg from '@/static/images/ext/2026_0730/icon_mac/ic_qu
 import grindMachineImg from '@/static/images/ext/2026_0730/icon_mac/ic_grind.png'
 import waterPourMachineImg from '@/static/images/ext/2026_0730/icon_mac/ic_water_pour.png'
 
-// 請依照您專案中的實際檔案路徑進行引入，例如：
-import SettingPopup from './setting-popup.vue'
-
-// 控制側邊欄彈窗顯示狀態的變數
-const settingShow = ref(false)
-
 const router = useRouter()
 const bluetoothStore = useBluetoothStore()
 const machineStatusStore = useMachineBStatusStore()
 const aliyunBaseUrl = import.meta.env.VITE_CDN_BASE_URL || 'https://cdn.bincoocoffee.cn/'
 
-//interface Recipe {
-//  id: number | string;
-//  name: string;
-//  powder: number;
-//  ratio: number;
-//  temp: number;
-//  rawConfig?: any;
-//}
+interface Recipe {
+  id: number | string;
+  name: string;
+  powder: number;
+  ratio: number;
+  temp: number;
+  rawConfig?: any;
+}
 
-//const colorValue = ref('white')
+const settingShow = ref(false)
+const colorValue = ref('white')
 
 const homeImg = ref(homeMachineImg) 
 const quickBoilingImg = ref(quickBoilingMachineImg) 
@@ -186,9 +176,7 @@ const grindImg = ref(grindMachineImg)
 const waterPourImg = ref(waterPourMachineImg)
 const defaultRecipeImg = ref(`${aliyunBaseUrl}a4fe367f3bf4c0ab36b4b932689d57bb3456610c1daa287e66aa44268a528373.png`)
 
-//const localRecipes = ref<Recipe[]>([])
-
-const dataList = ref([])
+const localRecipes = ref<Recipe[]>([])
 
 // 機器運作狀態
 const runStateObj = computed(() => {
@@ -205,153 +193,70 @@ const toState = () => {
   } 
 }
 
-//const colorConfirm = () => { 
-//  showToast({ type: 'success', message: '颜色设置成功' }) 
-//}
+const colorConfirm = () => { 
+  showToast({ type: 'success', message: '颜色设置成功' }) 
+}
 
 // 模擬 API 加載體驗
-//const mockLoadRecipes = () => {
-//  showLoadingToast({ message: '加载中...', forbidClick: true, duration: 0 })
-//  
-//  setTimeout(() => {
-//    try {
-//      const saved = localStorage.getItem('bincoo_my_recipes')
-//      if (saved) {
-//        const rawLibrary = JSON.parse(saved)
-//        if (Array.isArray(rawLibrary)) {
-//          localRecipes.value = rawLibrary.map((item: any) => {
-//            let config = item.configJson
-//            if (typeof config === 'string') {
-//              try { config = JSON.parse(config) } catch(e) { config = {} }
-//            }
-//            return {
-//              id: item.id || Date.now(),
-//              name: item.name || '未命名配方',
-//              powder: config?.legumes || 15,
-//              ratio: config?.proportion ? (config.proportion / 2) : 15,
-//              temp: config?.accordionItems?.temperature || 92,
-//              rawConfig: config 
-//            }
-//          })
-//        }
-//      } else {
-//        localRecipes.value = []
-//      }
-//    } catch (e) {
-//      console.error('读取首页配方失败:', e)
-//      localRecipes.value = []
-//    } finally {
-//      closeToast()
-//    }
-//  }, 500)
-//}
-
-const itemClick = (item, index) => {
-  // 构建参数对象
-  const params = {
-    ...item.configJson,
-    avatar: item.avatar,
-    createTime: item.createTime,
-    deviceId: item.deviceId,
-    id: item.id,
-    isEdit: true,
-    name: item.name,
-    userId: item.userId,
-    sort: item.sort,
-    sharedToDevice: item.sharedToDevice,
-  }
-
-  // 将参数对象转换为 URL 参数字符串
-  const queryParams = encodeURIComponent(JSON.stringify(params))
-  //console.info('queryParams', queryParams)
-
-  // 使用 uni.navigateTo 发起页面跳转
-  //uni.navigateTo({
-  //  url: `/pages-coffeeb/formulaDetail/formulaDetail?data=${queryParams}`,
-  //})
-  //  router.push('/pages-coffeeb/formulaDetail/formulaDetail?data=${queryParams}')
-  router.push(`/pages-coffeeb/formulaDetail/formulaDetail?data=${queryParams}`)
-}
-
-//這 配方存在 /static/data/recipes.json 的做法 ，是變通做法 2026-0911
-//const getMyFormula = async () => {
-//  try {
-//    const response = await fetch('/static/data/recipes.json')
-//    const rows = await response.json()
-//
-    // 簡化處理：解析 configJson 並將其綁定至 rawConfig
-//    rows.forEach((el: any) => {
-//      if (typeof el.configJson === 'string') {
-//        el.configJson = JSON.parse(el.configJson)
-//      }
-      // 綁定至 rawConfig 供 Template 讀取與套用預設值
-//      el.rawConfig = el.configJson
-//    })
-
-//    dataList.value = rows
-//    console.info('dataList 載入成功:', dataList.value)
-//  } catch (error) {
-//    console.error('讀取靜態配方 JSON 失敗:', error)
-//  }
-//}
-
-// 純前端版：定義統一的儲存 Key (對齊 myFormula.vue)
-const STORAGE_KEY = 'bincoo_my_recipes'
-
-const getMyFormula = () => {
-  try {
-    // 1. 從 LocalStorage 讀取資料
-    const rawData = localStorage.getItem(STORAGE_KEY)
-    let rows = rawData ? JSON.parse(rawData) : []
-
-    // 2. 簡化處理與防呆：解析 configJson 
-    rows.forEach((el: any) => {
-      if (typeof el.configJson === 'string') {
-        try {
-          el.configJson = JSON.parse(el.configJson)
-        } catch (e) {
-          el.configJson = {}
+const mockLoadRecipes = () => {
+  showLoadingToast({ message: '加载中...', forbidClick: true, duration: 0 })
+  
+  setTimeout(() => {
+    try {
+      const saved = localStorage.getItem('bincoo_my_recipes')
+      if (saved) {
+        const rawLibrary = JSON.parse(saved)
+        if (Array.isArray(rawLibrary)) {
+          localRecipes.value = rawLibrary.map((item: any) => {
+            let config = item.configJson
+            if (typeof config === 'string') {
+              try { config = JSON.parse(config) } catch(e) { config = {} }
+            }
+            return {
+              id: item.id || Date.now(),
+              name: item.name || '未命名配方',
+              powder: config?.legumes || 15,
+              ratio: config?.proportion ? (config.proportion / 2) : 15,
+              temp: config?.accordionItems?.temperature || 92,
+              rawConfig: config 
+            }
+          })
         }
+      } else {
+        localRecipes.value = []
       }
-      if (!el.configJson) el.configJson = {}
-
-      // 3. 綁定至 rawConfig 供 Template 讀取與套用預設值 (維持 index.vue 的相容性)
-      el.rawConfig = el.configJson
-    })
-
-    dataList.value = rows
-    console.info('dataList 從 LocalStorage 載入成功:', dataList.value)
-  } catch (error) {
-    console.error('讀取本機配方失敗:', error)
-    dataList.value = []
-  }
+    } catch (e) {
+      console.error('读取首页配方失败:', e)
+      localRecipes.value = []
+    } finally {
+      closeToast()
+    }
+  }, 500)
 }
 
-// 跳轉詳情頁 : 此頁小程序無
-//const goToDetail = (item: any) => {
-//  try {
-//    const params = {
-//      id: item.id,
-//      name: item.name,
-//      isShare: false,
-//      configJson: item.rawConfig
-//    }
-//    localStorage.setItem('bincoo_transit_data', JSON.stringify(params))
-//    router.push('/pages-coffeeb/formulaDetail/formulaDetail')
-//  } catch (err) {
-//    console.error('首页卡片跳转详情页发生错误:', err)
-//  }
-//}
+// 跳轉詳情頁
+const goToDetail = (item: any) => {
+  try {
+    const params = {
+      id: item.id,
+      name: item.name,
+      isShare: false,
+      configJson: item.rawConfig
+    }
+    localStorage.setItem('bincoo_transit_data', JSON.stringify(params))
+    router.push('/pages-coffeeb/formulaDetail/formulaDetail')
+  } catch (err) {
+    console.error('首页卡片跳转详情页发生错误:', err)
+  }
+}
 
 // 初始化與生命週期監聽
 onMounted(() => {
-//mockLoadRecipes()
-  getMyFormula(1, 5)
+  mockLoadRecipes()
 })
 
 onActivated(() => {
-//  mockLoadRecipes()
-  getMyFormula(1, 5)
+  mockLoadRecipes()
 })
 </script>
 

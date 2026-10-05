@@ -1,58 +1,63 @@
 <template>
-  <view class="content">
-    <view class="hot-list">
-      <view class="title flex justify-between px-5 pt-5">
-        <view>热门配方</view>
-        <view v-if="hotList.length > 0">
-          {{ currentHotIndex + 1 }}
-          <text class="font-size-3 title-color">/{{ hotList.length }}</text>
-        </view>
-      </view>
-      <swiper
+  <div class="h-screen overflow-y-auto bg-white pb-10">
+    <!-- 热门配方 -->
+    <div class="hot-list">
+      <div class="flex justify-between items-center px-5 pt-5 mb-4">
+        <div class="text-lg font-bold text-gray-800">热门配方</div>
+        <div v-if="hotList.length > 0" class="text-sm text-gray-500">
+          <span class="font-bold text-gray-800">{{ currentHotIndex + 1 }}</span>
+          <span class="text-xs">/{{ hotList.length }}</span>
+        </div>
+      </div>
+
+      <van-swipe
         v-if="hotList.length > 0"
-        class="swiper hot-box"
-        :next-margin="hotList.length > 1 ? '80rpx' : ''"
-        circular
-        :current="currentHotIndex"
+        class="h-48 px-4"
+        :loop="false"
+        :width="280"
+        :show-indicators="false"
         @change="changeHotSwiper"
-        :indicator-dots="false"
-        :autoplay="false"
       >
-        <swiper-item v-for="(item, index) in hotList" :key="index">
-          <view class="swiper-item flex flex-col">
-            <view class="swiper-header">
-              <view
-                class="card-content p-4"
+        <van-swipe-item v-for="(item, index) in hotList" :key="index" class="pr-4">
+          <div class="flex flex-col h-full cursor-pointer">
+            <div class="h-full mb-4">
+              <div
+                class="relative h-full p-4 text-white bg-center bg-no-repeat bg-cover rounded-2xl shadow-sm"
                 :style="{
                   backgroundImage: `url(${cdnBaseUrl}/97b213a04c4d7e9e6a6e5a17b2f35052d988a229e55f68d4946a79a440a64bbe.png)`,
                 }"
                 @click.stop="itemClick(item, index)"
               >
-                <view
+                <!-- 配置按鈕 -->
+                <div
                   @click.stop="showShare(item)"
-                  class="top-flag flex items-center justify-center"
+                  class="absolute top-1.5 right-1.5 flex items-center justify-center w-16 h-7 text-xs text-blue-800 bg-white rounded-tr-2xl rounded-bl-2xl cursor-pointer"
                 >
                   配置
-                  <i class="iconfont icon-a-svg10 ml-1 icon-size-10"></i>
-                </view>
-                <view>
-                  <view class="font-size-5">{{ item.name }}</view>
-                  <view class="tips-opacity font-size-3 mt-1">{{ item.configJson.tips }}</view>
-                </view>
-                <view class="flex font-size-3 mt-8">
-                  <view class="flex-1">
-                    <view class="tips-opacity">咖啡粉</view>
-                    <view class="font-size-4 mt-2">
+                  <i class="iconfont icon-a-svg10 ml-1 text-[10px]"></i>
+                </div>
+                
+                <!-- 標題與提示 -->
+                <div>
+                  <div class="text-base font-bold">{{ item.name }}</div>
+                  <div class="mt-1 text-xs opacity-60">{{ item.configJson.tips }}</div>
+                </div>
+                
+                <!-- 數據區塊 -->
+                <div class="flex mt-8 text-xs">
+                  <div class="flex-1">
+                    <div class="opacity-60">咖啡粉</div>
+                    <div class="mt-1 text-sm font-bold">
                       {{ item.configJson.legumes }}
-                      <text class="font-size-3">g</text>
-                    </view>
-                  </view>
-                  <view class="flex-1">
-                    <view class="tips-opacity">粉水比</view>
-                    <view class="font-size-4 mt-2">
+                      <span class="text-xs font-normal">g</span>
+                    </div>
+                  </div>
+                  <div class="flex-1">
+                    <div class="opacity-60">粉水比</div>
+                    <div class="mt-1 text-sm font-bold">
                       {{
                         item.configJson.proportion
-                          ? `1:${item.configJson.proportion.toFixed(1) / 2}`
+                          ? `1:${(item.configJson.proportion / 2).toFixed(1)}`
                           : '-'
                       }}
                       {{
@@ -60,85 +65,86 @@
                           ? (item.configJson.proportion / 2) * item.configJson.legumes
                           : '-'
                       }}
-                      <text class="font-size-3" v-if="item.configJson.proportion">ml</text>
-                    </view>
-                  </view>
-                  <view class="flex-1 pl-2">
-                    <view class="tips-opacity">研磨档位</view>
-                    <view class="font-size-4 mt-2">
+                      <span class="text-xs font-normal" v-if="item.configJson.proportion">ml</span>
+                    </div>
+                  </div>
+                  <div class="flex-1 pl-2">
+                    <div class="opacity-60">研磨档位</div>
+                    <div class="mt-1 text-sm font-bold">
                       {{ item.configJson.gear }}
-                      <text class="font-size-3">{{ dangweiType(item.configJson.gear) }}</text>
-                    </view>
-                  </view>
-                </view>
-              </view>
-            </view>
-          </view>
-        </swiper-item>
-      </swiper>
-      <view v-else class="mt-5">
-        <bc-status-tip :width="80" :height="68" icon="/static/images/common/no-data1.png">
-          <template #message>
-            <p class="title-color">配方更新中</p>
-            <p class="tips-color font-size-3.5 mt-2">敬请期待~</p>
-          </template>
-        </bc-status-tip>
-      </view>
-    </view>
-    <view class="extract-list">
-      <view class="title flex justify-between px-5 pt-5">
-        <view>精密萃取</view>
-        <view v-if="dataList.length > 0">
-          {{ currentIndex + 1 }}
-          <text class="font-size-3 title-color">/{{ dataList.length }}</text>
-        </view>
-      </view>
-      <swiper
+                      <span class="text-xs font-normal">{{ dangweiType(item.configJson.gear) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </van-swipe-item>
+      </van-swipe>
+      
+      <div v-else class="mt-5">
+        <van-empty image="/static/images/common/no-data1.png" description="配方更新中，敬请期待~" />
+      </div>
+    </div>
+
+    <!-- 精密萃取 -->
+    <div class="extract-list mt-6">
+      <div class="flex justify-between items-center px-5 pt-5 mb-4">
+        <div class="text-lg font-bold text-gray-800">精密萃取</div>
+        <div v-if="dataList.length > 0" class="text-sm text-gray-500">
+          <span class="font-bold text-gray-800">{{ currentIndex + 1 }}</span>
+          <span class="text-xs">/{{ dataList.length }}</span>
+        </div>
+      </div>
+
+      <van-swipe
         v-if="dataList.length > 0"
-        class="swiper extract-box"
-        :next-margin="dataList.length > 1 ? '80rpx' : ''"
-        circular
-        :current="currentIndex"
+        class="px-4 min-h-[400px]"
+        :loop="false"
+        :show-indicators="false"
         @change="changeSwiper"
-        :indicator-dots="false"
-        :autoplay="false"
       >
-        <swiper-item v-for="(item, index) in dataList" :key="index">
-          <view class="swiper-item flex flex-col">
-            <view class="list-content">
-              <view
-                class="item-box flex mb-4"
-                v-for="(el, index) in item.list"
-                :key="index"
-                @click="itemClick(el, index)"
+        <van-swipe-item v-for="(item, index) in dataList" :key="index">
+          <div class="flex flex-col w-full px-1">
+            <div class="list-content w-full">
+              <!-- 列表卡片 -->
+              <div
+                class="flex mb-4 p-2 bg-white rounded-lg cursor-pointer"
+                v-for="(el, elIndex) in item.list"
+                :key="elIndex"
+                @click="itemClick(el, elIndex)"
               >
-                <view class="img-box">
-                  <wd-img :width="78" :height="78" :src="el.configJson.bgUrl" />
-                  <view class="img-num" :style="{ color: el.configJson.textColor }">
+                <!-- 左側圖片 -->
+                <div class="relative flex items-center justify-center shrink-0 max-h-[78px]">
+                  <van-image width="78" height="78" :src="el.configJson.bgUrl" fit="contain" />
+                  <div
+                    class="absolute -bottom-3 right-1 font-roboto text-4xl font-bold tracking-tighter drop-shadow-sm"
+                    :style="{ color: el.configJson.textColor }"
+                  >
                     {{ el.configJson.accordionItems ? el.configJson.accordionItems.length : '' }}
-                  </view>
-                </view>
-                <view class="flex flex-col justify-center pl-3 font-size-3 content-box">
-                  <view class="name ellipsis">{{ el.name }}</view>
-                  <view class="ellipsis-2">
+                  </div>
+                </div>
+                
+                <!-- 右側文字 -->
+                <div class="flex flex-col justify-center pl-3 overflow-hidden text-xs text-gray-500">
+                  <div class="mb-1 text-sm font-bold text-gray-800 truncate">{{ el.name }}</div>
+                  <div class="line-clamp-2 leading-relaxed">
                     {{ el.configJson.tips }}
-                  </view>
-                </view>
-              </view>
-            </view>
-          </view>
-        </swiper-item>
-      </swiper>
-      <view v-else class="mt-5">
-        <bc-status-tip :width="80" :height="68" icon="/static/images/common/no-data1.png">
-          <template #message>
-            <p class="title-color">配方更新中</p>
-            <p class="tips-color font-size-3.5 mt-2">敬请期待~</p>
-          </template>
-        </bc-status-tip>
-      </view>
-    </view>
-  </view>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </van-swipe-item>
+      </van-swipe>
+      
+      <div v-else class="mt-5">
+        <van-empty image="/static/images/common/no-data1.png" description="配方更新中，敬请期待~" />
+      </div>
+    </div>
+  </div>
+
+  <!-- 全域彈窗組件 (維持不變) -->
   <bc-confirm
     :show="isUse"
     :objData="objData"
@@ -146,27 +152,36 @@
     @close="isUse = false"
     @success="finishBack"
   ></bc-confirm>
+  
   <bc-share
     :show="shareShow"
     @close="closeShare"
     :objData="shareData"
     @shareToCoffeeMachine="sendFormula"
   />
-  <bc-action-sheet :show="sheetShow" @close="closeSheet" :objData="sheetData" @success="start" />
+  
+  <bc-action-sheet 
+    :show="sheetShow" 
+    @close="closeSheet" 
+    :objData="sheetData" 
+    @success="start" 
+  />
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
-import { httpGet } from '@/utils/http'
-// import { sendStringData } from '@/utils/coffeebBlueTool'
+import { ref, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { showToast, showLoadingToast, closeToast } from 'vant'
 import { useBluetoothStore, useMachineBStatusStore } from '@/store'
 import { dangweiType, retry, stringToUTF8Array } from '@/utils'
-import { useToast, useMessage } from 'wot-design-uni'
 import { CoffeeMachineProtocol } from '@/utils/coffeebBlueTool'
+
+const router = useRouter()
 const coffeeMachineProtocol = CoffeeMachineProtocol.getInstance()
 const machineStatusStore = useMachineBStatusStore()
-const toast = useToast()
-const cdnBaseUrl = import.meta.env.VITE_CDN_BASE_URL
+const bluetoothStore = useBluetoothStore()
+
+const cdnBaseUrl = import.meta.env.VITE_CDN_BASE_URL || 'https://cdn.bincoocoffee.cn'
 const formulaBgList = [
   {
     url: `${cdnBaseUrl}/a4fe367f3bf4c0ab36b4b932689d57bb3456610c1daa287e66aa44268a528373.png`,
@@ -185,28 +200,34 @@ const formulaBgList = [
     color: '#D9C1A1',
   },
 ]
-const bluetoothStore = useBluetoothStore()
-const hotList = ref([])
-const dataList = ref([])
+
+const hotList = ref<any[]>([])
+const dataList = ref<any[]>([])
 const isUse = ref(false)
 const shareShow = ref(false)
 const shareData = ref({})
 const sheetShow = ref(false)
 const sheetData = ref({})
+
 const objData = {
   icon: '/static/images/popup/sucess.png',
   content: `配方配置成功`,
   tips: '专属于您的美味，已准备就绪~',
 }
+
 const currentIndex = ref(0)
-const changeSwiper = (e) => {
-  currentIndex.value = e.detail.current
-}
 const currentHotIndex = ref(0)
-const changeHotSwiper = (e) => {
-  currentHotIndex.value = e.detail.current
+
+// Vant 的 change 事件直接回傳 index
+const changeSwiper = (index: number) => {
+  currentIndex.value = index
 }
+const changeHotSwiper = (index: number) => {
+  currentHotIndex.value = index
+}
+
 const runStatus = ref(machineStatusStore.runStatus)
+
 watch(
   () => machineStatusStore.runStatus,
   (newStatus) => {
@@ -214,28 +235,33 @@ watch(
   },
   { immediate: true },
 )
-onMounted(() => {
-  queryList(1, 100)
-})
-const queryList = (pageNo, pageSize) => {
-  console.log(pageNo, pageSize)
-  const params = {
-    pageNum: pageNo,
-    pageSize,
-    userId: 3,
-    // deviceId: bluetoothStore.connectedDevice.productInfo.id,
-  }
 
-  const { run } = useRequest<IResponseData>(() => httpGet('/repice/repice/list', params))
+const fetchLocalRecipes = async () => {
+  try {
+    const response = await fetch('/static/data/recipes.json')
+    const rawData = await response.json()
+    const recipes = Array.isArray(rawData) ? rawData : (rawData.rows || [])
 
-  run().then((res) => {
-    let tempArray = []
-    res.rows.forEach((el, index) => {
-      el.configJson = JSON.parse(el.configJson)
+    hotList.value = []
+    dataList.value = []
+    let tempArray: any[] = []
+
+    recipes.forEach((el: any) => {
+      if (typeof el.configJson === 'string') {
+        try {
+          el.configJson = JSON.parse(el.configJson)
+        } catch (e) {
+          el.configJson = {}
+        }
+      }
+
       const sign = Math.floor(Math.random() * formulaBgList.length)
-      el.configJson.bgUrl = formulaBgList[sign].url
-      el.configJson.textColor = formulaBgList[sign].color
-      if (Number(el.configJson.type) === 1) {
+      if (!el.configJson.bgUrl) {
+        el.configJson.bgUrl = formulaBgList[sign].url
+        el.configJson.textColor = formulaBgList[sign].color
+      }
+
+      if (Number(el.configJson?.type) === 1) {
         hotList.value.push(el)
       } else {
         tempArray.push(el)
@@ -245,16 +271,20 @@ const queryList = (pageNo, pageSize) => {
         }
       }
     })
-    // 如果最后一个分钟数组的长度大于0，则将最后一个分钟数组添加到 dataList 中
+
     if (tempArray.length > 0) {
       dataList.value.push({ list: tempArray })
     }
-    console.log(dataList.value, 'dataList.value')
-  })
+  } catch (error) {
+    console.error('讀取本地配方失敗:', error)
+  }
 }
 
-const encodedParams = (item) => {
-  // 构建参数对象
+onMounted(() => {
+  fetchLocalRecipes()
+})
+
+const encodedParams = (item: any) => {
   const params = {
     ...item.configJson,
     avatar: item.avatar,
@@ -265,45 +295,36 @@ const encodedParams = (item) => {
     name: item.name,
     userId: item.userId,
   }
+  return encodeURIComponent(JSON.stringify(params))
+}
 
-  // 将参数对象序列化为 JSON 字符串
-  const serializedParams = JSON.stringify(params)
-  // URL 编码
-  const encodedParams = encodeURIComponent(serializedParams)
-  return encodedParams
+const itemClick = (item: any, index: number) => {
+  // 使用 Vue Router 推送路由
+  router.push(`/pages-coffeeb/formulaDetail/formulaDetail?data=${encodedParams(item)}`)
 }
-const itemClick = (item, index) => {
-  // 使用 uni.navigateTo 发起页面跳转
-  uni.navigateTo({
-    url: `/pages-coffeeb/formulaDetail/formulaDetail?data=${encodedParams(item)}`,
-  })
-}
-const showShare = (data) => {
+
+const showShare = (data: any) => {
   shareShow.value = true
   shareData.value = data
 }
+
 const closeShare = () => {
   shareShow.value = false
 }
-const sendFormula = async (data) => {
-  // 发送失败重试3次
-  uni.showLoading({ title: '分享中...', mask: true })
+
+const sendFormula = async (data: any) => {
+  showLoadingToast({ message: '分享中...', forbidClick: true, duration: 0 })
   try {
     await retry(() => send(data), 3, 500)
   } catch (error) {
     console.log(error, '配置命令执行失败')
-    toast.error('命令执行失败，请重新尝试')
+    showToast({ type: 'fail', message: '命令执行失败，请重新尝试' })
   } finally {
-    uni.hideLoading()
+    closeToast()
   }
 }
-const send = async (formulaData) => {
-  // 将32位整数ID值分解为4个8位字节
-  // 通过位移和按位与操作提取ID的各个字节段
-  // 第一个字节：取ID值的最高8位
-  // 第二个字节：取ID值的第二个8位
-  // 第三个字节：取ID值的第三个8位
-  // 第四个字节：取ID值的最低8位
+
+const send = async (formulaData: any) => {
   const obj = formulaData.configJson
   const data = [
     (formulaData.id >> 24) & 0xff,
@@ -317,7 +338,6 @@ const send = async (formulaData) => {
     obj.speed,
     obj.accordionItems.length,
   ]
-  // 遍历最多5段配方数据
   for (let i = 0; i < 5; i++) {
     if (i < obj.accordionItems.length) {
       const item = obj.accordionItems[i]
@@ -327,12 +347,10 @@ const send = async (formulaData) => {
       data.push(item.type)
       data.push(item.time)
     } else {
-      // 不足5段的用0填充
       data.push(...[0, 0, 0, 0, 0])
     }
   }
   const bytes = stringToUTF8Array(formulaData.name)
-  // 配方名称最大长度40字节
   for (let i = 0; i < 40; i++) {
     if (i < bytes.length) {
       data.push(bytes[i])
@@ -343,17 +361,16 @@ const send = async (formulaData) => {
   console.log('配方数据:', data)
   const response = await coffeeMachineProtocol.sendRecipeData(data)
   if (response == 'dd') {
-    // isUse.value = true
     closeShare()
     showSheet(formulaData)
   } else {
     throw new Error('命令执行失败，请重新尝试')
   }
 }
-// 开始冲煮
-const start = async (item) => {
+
+const start = async (item: any) => {
   if (runStatus.value !== 0) {
-    toast.error({ msg: '设备当前正在运行，请先停止当前任务', zIndex: 1000 })
+    showToast({ type: 'fail', message: '设备当前正在运行，请先停止当前任务' })
     return
   }
   const data = [
@@ -368,17 +385,17 @@ const start = async (item) => {
     0,
     0,
   ]
-  uni.showLoading({ title: '发送中...', mask: true })
+  
+  showLoadingToast({ message: '发送中...', forbidClick: true, duration: 0 })
   try {
     await retry(
       async () => {
         const response = await coffeeMachineProtocol.sendBrewMode(data)
         if (response === 'dd') {
           closeSheet()
-          uni.setStorageSync('id', item.id)
-          uni.navigateTo({
-            url: '/pages-coffeeb/brew/brew?id=' + item.id,
-          })
+          // 使用 H5 標準的 localStorage 替換 uni.setStorageSync
+          localStorage.setItem('id', item.id)
+          router.push('/pages-coffeeb/brew/brew?id=' + item.id)
         } else {
           throw new Error('命令执行失败，请重新尝试')
         }
@@ -386,13 +403,14 @@ const start = async (item) => {
       3,
       500,
     )
-  } catch (error) {
-    toast.error({ msg: error.message, zIndex: 1000 })
+  } catch (error: any) {
+    showToast({ type: 'fail', message: error.message || '命令执行失败' })
   } finally {
-    uni.hideLoading()
+    closeToast()
   }
 }
-const showSheet = (data) => {
+
+const showSheet = (data: any) => {
   sheetShow.value = true
   sheetData.value = data
 }
@@ -400,128 +418,15 @@ const showSheet = (data) => {
 const closeSheet = () => {
   sheetShow.value = false
 }
+
 const finishBack = () => {
   isUse.value = false
 }
 </script>
 
 <style lang="scss" scoped>
-.content {
-  height: 100vh;
-  overflow: auto;
-  background-color: white;
-  .hot-box {
-    height: 350rpx;
-  }
-  .extract-box {
-    height: calc(100vh - 520rpx);
-  }
-  .swiper {
-    .swiper-item {
-      height: 100%;
-      padding: 36rpx;
-      .title {
-        margin-bottom: 28rpx;
-        font-size: 36rpx;
-      }
-      .tips-opacity {
-        opacity: 0.6;
-      }
-      .swiper-header {
-        margin-bottom: 44rpx;
-        .card-content {
-          position: relative;
-          color: #ffffff;
-          background-repeat: no-repeat;
-          background-position: center;
-          background-size: cover;
-          border-radius: 24rpx;
-          .top-flag {
-            position: absolute;
-            top: 6rpx;
-            right: 6rpx;
-            width: 124rpx;
-            height: 54rpx;
-            font-size: 22rpx;
-            color: #004097;
-            background: #ffffff;
-            border-top-right-radius: 24rpx;
-            border-bottom-left-radius: 40rpx;
-          }
-        }
-      }
-      .list-content {
-        .img-box {
-          position: relative;
-          max-height: 78px;
-          .img-num {
-            position: absolute;
-            right: 8rpx;
-            bottom: -14rpx;
-            font-family: Roboto;
-            font-size: 80rpx;
-            font-weight: 600;
-            color: #f5abbd;
-            letter-spacing: -0.04em;
-          }
-          .blue {
-            color: #a1b9d9;
-          }
-        }
-        .content-box {
-          min-width: 340rpx;
-          line-height: 42rpx;
-          color: #999999;
-          .name {
-            height: 42rpx;
-            margin-bottom: 10rpx;
-            font-family: PingFang SC;
-            font-size: 28rpx;
-            line-height: 32rpx;
-            color: #222222;
-          }
-        }
-      }
-    }
-  }
-}
-
-.item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 150rpx;
-  padding: 0rpx 30rpx;
-  background-color: #ffffff;
-}
-
-.avatar-container {
-  width: 100rpx;
-  height: 100rpx;
-  margin-right: 10rpx; /* 添加右侧间距 */
-  overflow: hidden; /* 隐藏超出的部分 */
-  border-radius: 50%; /* 圆形 */
-  box-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1); /* 添加阴影 */
-}
-
-.avatar-image {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%; /* 圆形 */
-}
-
-.name-container {
-  flex: 1; /* 占据剩余空间 */
-  text-align: left; /* 文字靠左对齐 */
-}
-
-.item-line {
-  position: absolute;
-  bottom: 0rpx;
-  left: 0rpx;
-  width: 100%;
-  height: 1px;
-  background-color: #eeeeee;
+/* 大多數樣式已移轉為 Tailwind CSS 類別，僅保留自訂字體與特例樣式 */
+.font-roboto {
+  font-family: 'Roboto', sans-serif;
 }
 </style>

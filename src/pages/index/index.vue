@@ -59,7 +59,9 @@ const topPadding = ref(44)
 //  { status: 0, img: 'https://cdn.bincoocoffee.cn/home-machine.png', productInfo: { deviceName: 'Bincoo 咖啡机 04', deviceSn: 'BC-2026-04', id: 'web-device' } }
 //])
 
-import inmindImg from '@/static/images/ext/inmind-v.png' // 假設你的 @ 別名指向 src 目錄
+//import inmindImg from '@/static/images/ext/inmind-v.png' // 假設你的 @ 別名指向 src 目錄
+import inmindImg from '@/static/images/ext/2026_0730/icon_mac/ic_machine_bluetooth.png'
+
 
 const deviceList = ref([
   { 

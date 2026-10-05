@@ -1,9 +1,36 @@
 /*eslint-disable no-undef */
-//import './style.css'
+import './style.css' //本來被 remark
 import { createApp as createClientApp, h } from 'vue'
 import * as Pinia from 'pinia'
 import { createPersistedState } from 'pinia-plugin-persistedstate'
 import App from './App.vue'
+
+//以下 3 import 原在 line 60 ~ line 80
+// 🌟 1. 引入 Vant 核心與它的全域 CSS 樣式
+import Vant from 'vant';
+import 'vant/lib/index.css';
+
+// ==================================================================
+// 2. 注入 Web Bluetooth 適配器
+// ==================================================================
+import {
+  mockOpenBluetoothAdapter,
+  mockGetBluetoothAdapterState,
+  mockStartBluetoothDevicesDiscovery,
+  mockStopBluetoothDevicesDiscovery,
+  mockOnBluetoothDeviceFound,
+  mockCreateBLEConnection,
+  mockCloseBLEConnection,
+  mockOnBLEConnectionStateChange,
+  mockGetBLEDeviceServices,
+  mockGetBLEDeviceCharacteristics,
+  mockNotifyBLECharacteristicValueChange,
+  mockOnBLECharacteristicValueChange,
+  mockWriteBLECharacteristicValue,
+  mockSetBLEMTU
+} from '@/utils/web-ble-adapter.js'
+
+
 import router from './router/index'
 
 // ==================================================================
@@ -58,29 +85,7 @@ if (typeof window !== 'undefined') {
   };
 }
 
-// 🌟 1. 引入 Vant 核心與它的全域 CSS 樣式
-import Vant from 'vant';
-import 'vant/lib/index.css';
 
-// ==================================================================
-// 2. 注入 Web Bluetooth 適配器
-// ==================================================================
-import {
-  mockOpenBluetoothAdapter,
-  mockGetBluetoothAdapterState,
-  mockStartBluetoothDevicesDiscovery,
-  mockStopBluetoothDevicesDiscovery,
-  mockOnBluetoothDeviceFound,
-  mockCreateBLEConnection,
-  mockCloseBLEConnection,
-  mockOnBLEConnectionStateChange,
-  mockGetBLEDeviceServices,
-  mockGetBLEDeviceCharacteristics,
-  mockNotifyBLECharacteristicValueChange,
-  mockOnBLECharacteristicValueChange,
-  mockWriteBLECharacteristicValue,
-  mockSetBLEMTU
-} from '@/utils/web-ble-adapter.js'
 
 console.log('%c [System] 正在注入 Web Bluetooth 適配器...', 'color: #42b983; font-weight: bold;')
 

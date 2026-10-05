@@ -1,6 +1,7 @@
+
 <template>
   <div class="page-container">
-    <!-- 頂部導航欄 -->
+    <!-- 頂部導航欄 (對齊微信版，移除右上角清空按鈕) -->
     <van-nav-bar
       title="我的配方"
       left-arrow
@@ -34,7 +35,7 @@
                 <div class="formula-item-left">
                   <div class="recipe-name">{{ item.name || '未命名配方' }}</div>
                   
-                  <!-- 參數摘要 -->
+                  <!-- 參數摘要 (以分割線連接) -->
                   <div class="recipe-info-row">
                     <span>{{ item.configJson?.legumes ? `${item.configJson.legumes}g` : '-' }}</span>
                     <span class="divider"></span>
@@ -61,7 +62,7 @@
                     </span>
                   </div>
 
-                  <!-- 快捷操作按鈕列 -->
+                  <!-- 快捷操作按鈕列 (編輯、分享、置頂) -->
                   <div class="operate-row mt-3.5">
                     <div class="operate-eidt" @click.stop="editRecipeDirect(item)">
                       <van-icon name="edit" size="14" />
@@ -94,14 +95,14 @@
                 </div>
               </div>
 
-              <!-- 右滑選單：刪除 -->
+              <!-- 右滑選單：僅保留刪除按鈕 -->
               <template #right>
                 <div class="action-box">
                   <van-button
                     square
                     type="danger"
                     class="del-btn"
-                    @click.stop="deleteRecipe(item)"
+                    @click.stop="deleteRecipe(item, index)"
                   >
                     <van-icon name="delete-o" size="20" />
                   </van-button>
@@ -110,8 +111,8 @@
             </van-swipe-cell>
           </div>
 
-          <!-- 暫無資料空狀態 -->
-          <div class="no-data" v-else-if="!listLoading && dataList.length === 0">
+          <!-- 暫無資料空狀態 (完全對齊微信版文案與佈局) -->
+          <div class="no-data" v-else>
             <van-image width="124" height="100" src="https://cdn.bincoocoffee.cn/no-data.png" />
             <p class="desc-color">暫無配方</p>
             <p class="title-color">快去打造您的專屬美味吧~</p>
@@ -138,18 +139,16 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showToast, showConfirmDialog } from 'vant'
+import { useBluetoothStore } from '@/store/blue'
 
 const router = useRouter()
 const route = useRoute()
+const bluetoothStore = useBluetoothStore()
 
 const isRefreshing = ref(false)
 const listLoading = ref(false)
 const listFinished = ref(false)
 const dataList = ref<any[]>([])
-
-// 純前端版：定義統一的儲存 Key
-const STORAGE_KEY = 'bincoo_my_recipes'
-const TRANSIT_KEY = 'bincoo_transit_data'
 
 const cdnBaseUrl = 'https://cdn.bincoocoffee.cn'
 const formulaBgList = [
@@ -171,127 +170,111 @@ const dangweiType = (gear: any) => {
 }
 
 /**
- * 查詢清單 (讀取 LocalStorage)
+ * 構建 URI 傳參物件
  */
-const queryList = () => {
-  try {
-    const rawData = localStorage.getItem(STORAGE_KEY)
-    let recipes = rawData ? JSON.parse(rawData) : []
+const encodedParams = (item: any) => {
+  const params = {
+    ...item.configJson,
+    id: item.id,
+    isEdit: true,
+    name: item.name
+  }
+  return encodeURIComponent(JSON.stringify(params))
+}
 
-    // 處理防錯與隨機背景圖
-    recipes.forEach((el: any) => {
-      if (typeof el.configJson === 'string') {
-        try {
-          el.configJson = JSON.parse(el.configJson)
-        } catch (e) {
-          el.configJson = {}
+/**
+ * 讀取配方列表 (捨棄原來做法，改用index.vue 裡 getMyFormula  的 作法，結合 async/await 與 myFormula.vue 的 UI 需求)
+ */
+const fetchLocalRecipes = async () => {
+  listLoading.value = true
+  try {
+    // 1. 採用 index.vue 的 fetch 方式獲取資料
+    const response = await fetch('/static/data/recipes.json')
+    const rawRecipes = await response.json()
+
+    // 2. 解析 configJson，並補齊 myFormula.vue 所需的背景圖與文字顏色
+    dataList.value = rawRecipes.map((item: any, idx: number) => {
+      let config = item.configJson
+      if (typeof config === 'string') {
+        try { 
+          config = JSON.parse(config) 
+        } catch (e) { 
+          config = {} 
         }
       }
-      if (!el.configJson) el.configJson = {}
-      
-      // 若建立時未附圖，隨機賦予背景圖與字體顏色
-      if (!el.configJson.bgUrl) {
-        const sign = Math.floor(Math.random() * formulaBgList.length)
-        el.configJson.bgUrl = formulaBgList[sign].url
-        el.configJson.textColor = formulaBgList[sign].color
+
+      // 保留 myFormula.vue 的主題配色分配邏輯
+      const sign = idx % formulaBgList.length
+      config.bgUrl = config.bgUrl || formulaBgList[sign].url
+      config.textColor = config.textColor || formulaBgList[sign].color
+
+      return { 
+        ...item, 
+        configJson: config 
       }
     })
-
-    dataList.value = recipes
+    
   } catch (error) {
-    console.error('讀取本機配方失敗:', error)
-    dataList.value = []
+    console.error('讀取配方失敗:', error)
   } finally {
-    // 本機讀取無分頁延遲，一次載入即完成
-    listFinished.value = true
+    // 3. 維持 Vant List / PullRefresh 的狀態更新
     listLoading.value = false
+    listFinished.value = true
     isRefreshing.value = false
   }
 }
 
-/**
- * 下拉刷新
- */
+const saveToStorage = (list: any[]) => {
+  localStorage.setItem('bincoo_my_recipes', JSON.stringify(list))
+}
+
 const onRefresh = () => {
   isRefreshing.value = true
-  queryList()
+  fetchLocalRecipes()
 }
 
-/**
- * 滾動到底部觸發 (因已改為一次性載入，這裡僅設定狀態結束)
- */
 const loadMore = () => {
-  listLoading.value = false
-  listFinished.value = true
+  fetchLocalRecipes()
 }
 
 /**
- * 點擊卡片進入詳情頁 (透過快遞櫃 Key 傳參，避免 URL 過長)
+ * 點擊卡片直接進入詳情頁 (微信原生行為)
  */
 const itemClick = (item: any) => {
-  const params = { ...item, isEdit: true }
-  localStorage.setItem(TRANSIT_KEY, JSON.stringify(params))
-  router.push('/pages-coffeeb/formulaDetail/formulaDetail')
+  router.push(`/pages-coffeeb/formulaDetail/formulaDetail?data=${encodedParams(item)}`)
 }
 
 /**
- * 編輯配方 (透過快遞櫃 Key 傳參，避免 URL 過長)
+ * 編輯配方
  */
 const editRecipeDirect = (item: any) => {
-  const params = { ...item, isEdit: true }
-  localStorage.setItem(TRANSIT_KEY, JSON.stringify(params))
-  router.push('/pages-coffeeb/formula/formula')
+  router.push(`/pages-coffeeb/formula/formula?data=${encodedParams(item)}`)
 }
 
 /**
- * 置頂配方 (陣列重排並保存至 LocalStorage)
+ * 置頂配方
  */
 const setTopRecipe = (index: number) => {
-  if (index === 0) return 
-  
-  const rawData = localStorage.getItem(STORAGE_KEY)
-  if (!rawData) return
-
-  try {
-    let recipes = JSON.parse(rawData)
-    const target = recipes[index]
-    
-    // 切換置頂，將目標項目抽離並重新擺放至最前
-    recipes.splice(index, 1)
-    recipes.unshift(target)
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes))
-    showToast('置頂成功')
-    queryList() 
-  } catch (error) {
-    showToast('置頂失敗')
-    console.error('置頂錯誤:', error)
-  }
+  if (index === 0) return
+  const item = dataList.value[index]
+  dataList.value.splice(index, 1)
+  dataList.value.unshift(item)
+  saveToStorage(dataList.value)
+  showToast('置頂成功')
 }
 
 /**
- * 刪除配方 (陣列過濾並保存至 LocalStorage)
+ * 刪除配方
  */
-const deleteRecipe = (item: any) => {
+const deleteRecipe = (item: any, index: number) => {
   showConfirmDialog({
     title: '確認刪除',
     message: '刪除後無法恢復，請謹慎操作',
     confirmButtonColor: '#004097'
   }).then(() => {
-    try {
-      const rawData = localStorage.getItem(STORAGE_KEY)
-      if (rawData) {
-        let recipes = JSON.parse(rawData)
-        recipes = recipes.filter((r: any) => r.id !== item.id)
-        
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes))
-        showToast('刪除成功')
-        queryList()
-      }
-    } catch (error) {
-      showToast('刪除失敗')
-      console.error('刪除錯誤:', error)
-    }
+    dataList.value.splice(index, 1)
+    saveToStorage(dataList.value)
+    showToast('刪除成功')
   }).catch(() => {})
 }
 
@@ -299,29 +282,27 @@ const deleteRecipe = (item: any) => {
  * 分享至設備
  */
 const shareRecipeToDevice = (item: any) => {
-  showToast(`準備分享配方《${item.name}》`)
+  showToast(`已分享配方《${item.name}》`)
 }
 
 /**
  * 創建配方
  */
 const addFormula = () => {
-  localStorage.removeItem(TRANSIT_KEY) // 確保是全新創建狀態
   router.push('/pages-coffeeb/formula/formula')
 }
 
-// 監聽路由，返回時刷新列表抓取最新 LocalStorage
 watch(
   () => route.path,
   (newPath) => {
     if (newPath === '/pages-coffeeb/myFormula/myFormula') {
-      onRefresh()
+      fetchLocalRecipes()
     }
   }
 )
 
 onMounted(() => {
-  queryList()
+  fetchLocalRecipes()
 })
 </script>
 
