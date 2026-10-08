@@ -176,6 +176,9 @@ import { useBluetoothStore, useMachineBStatusStore } from '@/store'
 import { dangweiType, retry, stringToUTF8Array } from '@/utils'
 import { CoffeeMachineProtocol } from '@/utils/coffeebBlueTool'
 
+// 加上這行直接引入 JSON (請根據您檔案的實際相對位置調整路徑，例如 '../../static/data/recipes.json')
+import rawData from '@/static/data/recipes.json'
+
 const router = useRouter()
 const coffeeMachineProtocol = CoffeeMachineProtocol.getInstance()
 const machineStatusStore = useMachineBStatusStore()
@@ -236,10 +239,10 @@ watch(
   { immediate: true },
 )
 
-const fetchLocalRecipes = async () => {
+const fetchLocalRecipes = () => { //async () => {
   try {
-    const response = await fetch('/static/data/recipes.json')
-    const rawData = await response.json()
+    //const response = await fetch('/static/data/recipes.json')
+    //const rawData = await response.json()
     const recipes = Array.isArray(rawData) ? rawData : (rawData.rows || [])
 
     hotList.value = []
