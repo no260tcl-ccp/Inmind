@@ -66,7 +66,7 @@
                     <div class="operate-eidt" @click.stop="editRecipeDirect(item)">
                       <van-icon name="edit" size="14" />
                     </div>
-                    <div class="operate-setting" @click.stop="openShareMenu(item)">
+                    <div class="operate-setting" @click.stop="shareRecipeToDevice(item)">
                       <van-image width="10" height="10" src="https://cdn.bincoocoffee.cn/share.png" class="mr-1" />
                       <span>分享</span>
                     </div>
@@ -131,45 +131,21 @@
         創建配方
       </div>
     </div>
-
-    <!-- 動作選單：分享或快速沖煮 -->
-    <van-action-sheet
-      v-model:show="showActionSheet"
-      :actions="actionSheetOptions"
-      cancel-text="取消"
-      close-on-click-action
-      @select="onActionSelect"
-      @cancel="showActionSheet = false"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { showToast, showConfirmDialog, showLoadingToast, closeToast } from 'vant'
-
-// 引入藍牙與設備狀態 Store (請確認路徑與您的專案結構相符)
-import { useBluetoothStore } from '@/store/blue'
-import { useMachineBStatusStore } from '@/store/coffeebStatus'
+import { showToast, showConfirmDialog } from 'vant'
 
 const router = useRouter()
 const route = useRoute()
-const bluetoothStore = useBluetoothStore()
-const machineStatusStore = useMachineBStatusStore()
 
 const isRefreshing = ref(false)
 const listLoading = ref(false)
 const listFinished = ref(false)
 const dataList = ref<any[]>([])
-
-// 選單控制相關
-const showActionSheet = ref(false)
-const currentShareItem = ref<any>(null)
-const actionSheetOptions = [
-  { name: '分享至設備', value: 'share' },
-  { name: '快速沖煮', value: 'quick' }
-]
 
 // 純前端版：定義統一的儲存 Key
 const STORAGE_KEY = 'bincoo_my_recipes'
@@ -202,6 +178,7 @@ const queryList = () => {
     const rawData = localStorage.getItem(STORAGE_KEY)
     let recipes = rawData ? JSON.parse(rawData) : []
 
+    // 處理防錯與隨機背景圖
     recipes.forEach((el: any) => {
       if (typeof el.configJson === 'string') {
         try {
@@ -212,6 +189,7 @@ const queryList = () => {
       }
       if (!el.configJson) el.configJson = {}
       
+      // 若建立時未附圖，隨機賦予背景圖與字體顏色
       if (!el.configJson.bgUrl) {
         const sign = Math.floor(Math.random() * formulaBgList.length)
         el.configJson.bgUrl = formulaBgList[sign].url
@@ -224,34 +202,50 @@ const queryList = () => {
     console.error('讀取本機配方失敗:', error)
     dataList.value = []
   } finally {
+    // 本機讀取無分頁延遲，一次載入即完成
     listFinished.value = true
     listLoading.value = false
     isRefreshing.value = false
   }
 }
 
+/**
+ * 下拉刷新
+ */
 const onRefresh = () => {
   isRefreshing.value = true
   queryList()
 }
 
+/**
+ * 滾動到底部觸發 (因已改為一次性載入，這裡僅設定狀態結束)
+ */
 const loadMore = () => {
   listLoading.value = false
   listFinished.value = true
 }
 
+/**
+ * 點擊卡片進入詳情頁 (透過快遞櫃 Key 傳參，避免 URL 過長)
+ */
 const itemClick = (item: any) => {
   const params = { ...item, isEdit: true }
   localStorage.setItem(TRANSIT_KEY, JSON.stringify(params))
   router.push('/pages-coffeeb/formulaDetail/formulaDetail')
 }
 
+/**
+ * 編輯配方 (透過快遞櫃 Key 傳參，避免 URL 過長)
+ */
 const editRecipeDirect = (item: any) => {
   const params = { ...item, isEdit: true }
   localStorage.setItem(TRANSIT_KEY, JSON.stringify(params))
   router.push('/pages-coffeeb/formula/formula')
 }
 
+/**
+ * 置頂配方 (陣列重排並保存至 LocalStorage)
+ */
 const setTopRecipe = (index: number) => {
   if (index === 0) return 
   
@@ -261,6 +255,8 @@ const setTopRecipe = (index: number) => {
   try {
     let recipes = JSON.parse(rawData)
     const target = recipes[index]
+    
+    // 切換置頂，將目標項目抽離並重新擺放至最前
     recipes.splice(index, 1)
     recipes.unshift(target)
 
@@ -273,6 +269,9 @@ const setTopRecipe = (index: number) => {
   }
 }
 
+/**
+ * 刪除配方 (陣列過濾並保存至 LocalStorage)
+ */
 const deleteRecipe = (item: any) => {
   showConfirmDialog({
     title: '確認刪除',
@@ -291,142 +290,27 @@ const deleteRecipe = (item: any) => {
       }
     } catch (error) {
       showToast('刪除失敗')
+      console.error('刪除錯誤:', error)
     }
   }).catch(() => {})
 }
 
+/**
+ * 分享至設備
+ */
+const shareRecipeToDevice = (item: any) => {
+  showToast(`準備分享配方《${item.name}》`)
+}
+
+/**
+ * 創建配方
+ */
 const addFormula = () => {
-  localStorage.removeItem(TRANSIT_KEY)
+  localStorage.removeItem(TRANSIT_KEY) // 確保是全新創建狀態
   router.push('/pages-coffeeb/formula/formula')
 }
 
-/**
- * 開啟分享與沖煮選單
- */
-const openShareMenu = (item: any) => {
-  currentShareItem.value = item
-  showActionSheet.value = true
-}
-
-/**
- * 處理選單點擊事件
- */
-const onActionSelect = (action: any) => {
-  if (action.value === 'share') {
-    shareRecipeToDevice(currentShareItem.value)
-  } else if (action.value === 'quick') {
-    quickBrewingMode(currentShareItem.value)
-  }
-}
-
-/**
- * 封裝並分享至設備 (模擬 Web BLE 0x06 指令發送)
- */
-const shareRecipeToDevice = async (formulaData: any) => {
-  // 檢查藍牙連線狀態
-  if (bluetoothStore.connectionStatus !== 'connected') {
-    showToast('分享失敗：請先連接咖啡機藍牙')
-    return
-  }
-
-  showLoadingToast({ message: '分享中...', forbidClick: true, duration: 0 })
-  
-  try {
-    const obj = formulaData.configJson || {}
-    const items = obj.accordionItems || []
-    
-    // 初始化 60 Bytes 的封包陣列
-    const data = new Uint8Array(60)
-    
-    // 封包標頭
-    data[0] = 0x5A
-    data[1] = 0x06 // 0x06 為配方數據指令
-    data[2] = 55   // 數據長度
-    
-    // 處理配方 ID (4 Bytes)
-    const numId = Number(formulaData.id) || 0
-    data[3] = (numId >> 24) & 0xff
-    data[4] = (numId >> 16) & 0xff
-    data[5] = (numId >> 8) & 0xff
-    data[6] = numId & 0xff
-
-    // 寫入基礎參數
-    data[7] = obj.proportion ? obj.proportion / 2 : 0
-    data[8] = obj.legumes || 0
-    data[9] = obj.grind ? 1 : 0
-    data[10] = obj.gear || 0
-    data[11] = obj.speed || 0
-    data[12] = items.length
-
-    // 迴圈寫入最多 5 段注水參數
-    let offset = 13
-    for (let i = 0; i < 5; i++) {
-      if (i < items.length) {
-        const item = items[i]
-        data[offset++] = item.water || 0
-        data[offset++] = Number(`3.${item.velocity || 0}`) * 10
-        data[offset++] = item.temperature || 0
-        data[offset++] = item.type || 0
-        data[offset++] = item.time || 0
-      } else {
-        // 不足 5 段則補 0
-        data[offset++] = 0
-        data[offset++] = 0
-        data[offset++] = 0
-        data[offset++] = 0
-        data[offset++] = 0
-      }
-    }
-
-    // 將配方名稱轉換為位元組 (UTF-8 替代 GB2312) 並寫入 (最多 20 Bytes)
-    const encoder = new TextEncoder()
-    const nameBytes = encoder.encode(formulaData.name || '未命名配方')
-    for (let i = 0; i < 20; i++) {
-      data[offset++] = i < nameBytes.length ? nameBytes[i] : 0
-    }
-
-    // 計算校驗碼 Checksum (異或運算)
-    let checksum = 0
-    for (let i = 2; i <= 57; i++) {
-      checksum ^= data[i]
-    }
-    data[58] = checksum
-    data[59] = 0xAA // 結束符
-
-    // 透過 Web BLE Adapter 發送資料
-    if (typeof bluetoothStore.sendData === 'function') {
-      await bluetoothStore.sendData(data.buffer || data)
-    } else {
-      console.warn('bluetoothStore.sendData 未定義，改為模擬發送', data)
-    }
-
-    closeToast()
-    showToast({ type: 'success', message: '已成功寫入咖啡機專屬定制' })
-    
-  } catch (error) {
-    closeToast()
-    console.error('藍牙發送失敗:', error)
-    showToast('命令執行失敗，請重新嘗試')
-  }
-}
-
-/**
- * 快速沖煮模式
- */
-const quickBrewingMode = async (formulaData: any) => {
-  try {
-    // 儲存快速沖煮目標配方
-    if (machineStatusStore.saveQuickCookingRecipe) {
-      await machineStatusStore.saveQuickCookingRecipe(formulaData.id)
-    }
-    // 跳轉至研磨頁面執行沖煮
-    router.push('/pages-coffeeb/grind/grind')
-  } catch (error) {
-    showToast('快速沖煮啟動失敗')
-    console.error(error)
-  }
-}
-
+// 監聽路由，返回時刷新列表抓取最新 LocalStorage
 watch(
   () => route.path,
   (newPath) => {
@@ -442,7 +326,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-/* 樣式保持不變，可沿用原有的 myFormula.vue CSS */
 .page-container {
   min-height: 100vh;
   background-color: #ffffff;
