@@ -344,23 +344,11 @@ onMounted(() => {
   if (bluetoothStore.connectionStatus === 'connected') {
     deviceId.value = bluetoothStore.connectedDevice?.productInfo?.id
   }
-  
-  // 1. 嘗試從 LocalStorage 讀取 (對應 myFormula.vue 傳遞的 TRANSIT_KEY)
-  const transitData = localStorage.getItem('bincoo_transit_data')
-  // 2. 為了相容其他可能的跳轉，保留網址讀取方式
   const queryData = route.query.data as string
-
-  let rawDataToParse = null
-
-  if (transitData) {
-    rawDataToParse = transitData
-  } else if (queryData) {
-    rawDataToParse = decodeURIComponent(queryData)
-  }
-
-  if (rawDataToParse) {
+  if (queryData) {
     try {
-      const params = convertStrToPrimitive(JSON.parse(rawDataToParse))
+      const decodedData = decodeURIComponent(queryData)
+      const params = convertStrToPrimitive(JSON.parse(decodedData))
       // 支援微信 nested/configJson 架構與 Web 扁平化結構相容
       const config = params.configJson || params
       
