@@ -68,7 +68,7 @@ const deviceList = ref([
     status: 0, 
     img: inmindImg, // 使用引入的變數
     //productInfo: { deviceName: 'Bincoo 咖啡机 04', deviceSn: 'BC-2026-04', id: 'web-device' } 
-	productInfo: { deviceName: 'Inmind 咖啡機', deviceSn: 'BC-2026-04', id: 'web-device' }
+	productInfo: { deviceName: 'Inmind Coffee Machine', deviceSn: 'BC-2026-04', id: 'web-device' }
   }
 ])
 
