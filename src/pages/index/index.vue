@@ -12,12 +12,12 @@
           <div class="devcie" @click="onClick(item)">
             <div class="devcie-header">
               <div class="devcie-header-left">
-                <div class="device-name-text">{{ item.productInfo?.deviceName || '未知设备' }}</div>
+                <div class="device-name-text">{{ item.productInfo?.deviceName || '未知設備' }}</div>
                 <div class="device-sn-text">SN: {{ item.productInfo?.deviceSn || '---' }}</div>
               </div>
               <div class="devcie-header-right">
                 <van-tag round :type="connectionStatus === 'connected' ? 'success' : 'default'">
-                  {{ connectionStatus === 'connected' ? '已连接' : '未连接' }}
+                  {{ connectionStatus === 'connected' ? '已連接' : '未連接' }}
                 </van-tag>
               </div>
             </div>
@@ -29,7 +29,7 @@
       </van-swipe>
 
       <div class="btn-box">
-        <van-button round block type="primary" class="custom-button" @click="toSearch">添加新设备</van-button>
+        <van-button round block type="primary" class="custom-button" @click="toSearch">添加新設備</van-button>
       </div>
     </div>
   </div>
@@ -67,7 +67,8 @@ const deviceList = ref([
   { 
     status: 0, 
     img: inmindImg, // 使用引入的變數
-    productInfo: { deviceName: 'Bincoo 咖啡机 04', deviceSn: 'BC-2026-04', id: 'web-device' } 
+    //productInfo: { deviceName: 'Bincoo 咖啡机 04', deviceSn: 'BC-2026-04', id: 'web-device' } 
+	productInfo: { deviceName: 'Inmind 咖啡機', deviceSn: 'BC-2026-04', id: 'web-device' }
   }
 ])
 
@@ -79,7 +80,7 @@ const onClick = async (item: any) => {
   try {
     await mockOpenBluetoothAdapter()
     await mockStartBluetoothDevicesDiscovery()
-    showLoadingToast({ message: '正在连线机器...', forbidClick: true, duration: 0 })
+    showLoadingToast({ message: '正在連線設備...', forbidClick: true, duration: 0 })
     await mockCreateBLEConnection({ deviceId: 'web-device' })
     await mockGetBLEDeviceServices({ deviceId: 'web-device' })
 
